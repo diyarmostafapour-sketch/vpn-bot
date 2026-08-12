@@ -73,7 +73,7 @@ def buy(call):
 def show_unlimited(call):
     markup = types.InlineKeyboardMarkup()
     markup.add(types.InlineKeyboardButton("۱ ماهه — 600,000 تومان", callback_data="plan_unlimited_1"))
-    markup.add(types.InlineKeyboardButton("۲ ماهه — 1,100,000 تومان", callback_data="plan_unlimited_2"))
+    markup.add(types.InlineKeyboardButton("۲ ماهه — 1,150,000 تومان", callback_data="plan_unlimited_2"))
     markup.add(types.InlineKeyboardButton("🔙 برگشت", callback_data="buy"))
     bot.edit_message_text(
         "🔥 *پلن نامحدود:*",
