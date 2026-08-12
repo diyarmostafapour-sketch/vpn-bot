@@ -8,7 +8,7 @@ from datetime import datetime
 BOT_TOKEN = "8883749112:AAGWXJgS-YuVwkHNBEysk0IAXNoLSrhoj7k"   # از BotFather
 ADMIN_ID = 775127399              # Chat ID تو
 CARD_NUMBER = "6219-8619-2246-1164"
-CARD_NAME = "دیار"
+CARD_NAME = "مصطفی پور"
 
 # ==================== پلن‌ها ====================
 PLANS = {
