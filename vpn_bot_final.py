@@ -36,7 +36,7 @@ PENDING_ORDER_ALERT_HOURS = 2  # اگه سفارش این‌قدر ساعت مع
 # ==================== انبار کانفیگ تست رایگان ====================
 # اینجا ۵ تا کانفیگ تست رو بذار — کاربر با زدن دکمه یکی از این‌ها رو خودکار می‌گیره
 TRIAL_CONFIGS = [
-    "https://axonnetwork0market.patoghyou.ir/uBoJwwxhi28wz9KArkDJ/2a0b6c7f-d82a-451e-a805-431b34c58d0e/#تست1225",
+   "https://axonnetwork0market.patoghyou.ir/uBoJwwxhi28wz9KArkDJ/2a0b6c7f-d82a-451e-a805-431b34c58d0e/#تست1225",
     "https://axonnetwork0market.patoghyou.ir/uBoJwwxhi28wz9KArkDJ/91a65f32-0905-43c0-8fdb-e7a806b08367/#تست-1228",
     "https://axonnetwork0market.patoghyou.ir/uBoJwwxhi28wz9KArkDJ/af43d5ae-4199-487e-84a1-7a544162c9b0/#تست1243",
     "https://axonnetwork0market.patoghyou.ir/uBoJwwxhi28wz9KArkDJ/879493e1-4520-42a0-84a0-baf7db0097da/#تست-1256",
@@ -253,12 +253,23 @@ def get_trial(call):
         )
         return
 
-    if not TRIAL_CONFIGS:
-        bot.send_message(call.message.chat.id, "😔 فعلاً کانفیگ تستی موجود نیست.")
+    given_count = len(trials)
+
+    # انبار کانفیگ تست تموم شده — دیگه چیزی برای دادن نیست
+    if given_count >= len(TRIAL_CONFIGS):
+        bot.send_message(
+            call.message.chat.id,
+            "😔 *فعلاً کانفیگ تست موجود نیست*\n\n"
+            "━━━━━━━━━━━━━━━\n"
+            "انبار کانفیگ‌های تست تموم شده.\n"
+            "می‌تونی مستقیم از بخش «🛒 خرید اشتراک» اقدام کنی.\n"
+            "━━━━━━━━━━━━━━━",
+            parse_mode="Markdown"
+        )
         return
 
-    # انتخاب چرخشی از انبار ۵ تایی بر اساس تعداد تست‌های داده‌شده تا حالا
-    index = len(trials) % len(TRIAL_CONFIGS)
+    # هر کانفیگ فقط یک‌بار و به ترتیب داده میشه (بدون تکرار/چرخش)
+    index = given_count
     config = TRIAL_CONFIGS[index]
 
     trials[uid] = {
@@ -287,15 +298,48 @@ def get_trial(call):
         parse_mode="Markdown"
     )
 
+    remaining = len(TRIAL_CONFIGS) - (given_count + 1)
+
     try:
         bot.send_message(
             ADMIN_ID,
             f"🧪 کانفیگ تست برای کاربر {call.from_user.first_name or '-'} "
-            f"(`{call.from_user.id}`) ارسال شد.",
+            f"(`{call.from_user.id}`) ارسال شد.\n"
+            f"📦 کانفیگ باقی‌مانده در انبار: *{remaining}*",
             parse_mode="Markdown"
         )
     except Exception:
         pass
+
+    # وقتی فقط ۱ کانفیگ باقی مونده (یعنی ۴ تا داده شده) هشدار بده که بروزرسانی کنه
+    if remaining == 1:
+        try:
+            bot.send_message(
+                ADMIN_ID,
+                "⚠️ *هشدار انبار کانفیگ تست*\n\n"
+                "━━━━━━━━━━━━━━━\n"
+                "فقط *۱ کانفیگ تست* توی انبار باقی مونده!\n"
+                "برو توی کد لیست `TRIAL_CONFIGS` رو بروزرسانی کن\n"
+                "تا کاربرای بعدی هم بتونن تست بگیرن.\n"
+                "━━━━━━━━━━━━━━━",
+                parse_mode="Markdown"
+            )
+        except Exception:
+            pass
+    elif remaining == 0:
+        try:
+            bot.send_message(
+                ADMIN_ID,
+                "🚨 *انبار کانفیگ تست تموم شد!*\n\n"
+                "━━━━━━━━━━━━━━━\n"
+                "همه‌ی ۵ کانفیگ تست داده شدن.\n"
+                "کاربرای بعدی دیگه کانفیگ تست نمی‌گیرن\n"
+                "تا وقتی که لیست `TRIAL_CONFIGS` رو بروزرسانی کنی.\n"
+                "━━━━━━━━━━━━━━━",
+                parse_mode="Markdown"
+            )
+        except Exception:
+            pass
 
 # ==================== وضعیت سرویس ====================
 @bot.callback_query_handler(func=lambda call: call.data == "service_status")
@@ -1053,15 +1097,19 @@ def admin_trials(call):
     if call.from_user.id != ADMIN_ID:
         return
     trials = load_trials()
+    given = len(trials)
+    remaining = max(0, len(TRIAL_CONFIGS) - given)
     markup = types.InlineKeyboardMarkup()
     markup.add(types.InlineKeyboardButton("🔙 برگشت به پنل", callback_data="admin_panel_back"))
     bot.send_message(
         call.message.chat.id,
         f"🧪 *آمار کانفیگ تست*\n\n"
         f"━━━━━━━━━━━━━━━\n"
-        f"👥 تعداد کل تست‌های داده‌شده: *{len(trials)}*\n"
-        f"📦 تعداد کانفیگ در انبار: *{len(TRIAL_CONFIGS)}*\n"
-        f"━━━━━━━━━━━━━━━",
+        f"👥 تعداد کل تست‌های داده‌شده: *{given}*\n"
+        f"📦 ظرفیت کل انبار: *{len(TRIAL_CONFIGS)}*\n"
+        f"✅ باقی‌مانده در انبار: *{remaining}*\n"
+        f"━━━━━━━━━━━━━━━" +
+        ("\n⚠️ انبار تمومه، لیست TRIAL_CONFIGS رو بروزرسانی کن." if remaining == 0 else ""),
         parse_mode="Markdown",
         reply_markup=markup
     )
