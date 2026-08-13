@@ -29,7 +29,7 @@ PLANS = {
 
 # ==================== تنظیمات رفرال / تخفیف ====================
 REFERRALS_NEEDED_FOR_DISCOUNT = 3
-REFERRAL_DISCOUNT_PERCENT = 20
+REFERRAL_DISCOUNT_PERCENT = 15
 EXPIRY_REMINDER_DAYS = [3, 1]  # چند روز قبل از انقضا یادآوری بفرسته
 
 ORDERS_FILE = "orders.json"
