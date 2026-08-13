@@ -31,10 +31,46 @@ PLANS = {
 REFERRALS_NEEDED_FOR_DISCOUNT = 3
 REFERRAL_DISCOUNT_PERCENT = 15
 EXPIRY_REMINDER_DAYS = [3, 1]  # چند روز قبل از انقضا یادآوری بفرسته
+PENDING_ORDER_ALERT_HOURS = 2  # اگه سفارش این‌قدر ساعت معلق موند به ادمین هشدار بده
+
+# ==================== انبار کانفیگ تست رایگان ====================
+# اینجا ۵ تا کانفیگ تست رو بذار — کاربر با زدن دکمه یکی از این‌ها رو خودکار می‌گیره
+TRIAL_CONFIGS = [
+    "https://axonnetwork0market.patoghyou.ir/uBoJwwxhi28wz9KArkDJ/2a0b6c7f-d82a-451e-a805-431b34c58d0e/#تست1225",
+    "https://axonnetwork0market.patoghyou.ir/uBoJwwxhi28wz9KArkDJ/91a65f32-0905-43c0-8fdb-e7a806b08367/#تست-1228",
+    "https://axonnetwork0market.patoghyou.ir/uBoJwwxhi28wz9KArkDJ/af43d5ae-4199-487e-84a1-7a544162c9b0/#تست1243",
+    "https://axonnetwork0market.patoghyou.ir/uBoJwwxhi28wz9KArkDJ/879493e1-4520-42a0-84a0-baf7db0097da/#تست-1256",
+    "https://axonnetwork0market.patoghyou.ir/uBoJwwxhi28wz9KArkDJ/18235ec0-3265-4415-972a-84cdf794b739/#تست-1262",
+]
+TRIAL_HOURS = 24  # مدت اعتبار کانفیگ تست (فقط برای اطلاع‌رسانی به کاربر)
+
+# ==================== انبار کانفیگ آماده برای هر پلن (خرید آنی) ====================
+# برای هر پلن یه لیست از کانفیگ‌های آماده بذار. وقتی خالی باشه (لیست []),
+# ربات مثل قبل کانفیگ رو دستی از ادمین می‌پرسه.
+CONFIG_STOCK = {
+    "unlimited_1": [],
+    "unlimited_2": [],
+    "gb_30": [],
+    "gb_35": [],
+    "gb_40": [],
+    "gb_50": [],
+    "gb_60": [],
+    "gb_70": [],
+    "gb_80": [],
+    "gb_90": [],
+}
+
+# ==================== وضعیت سرویس ====================
+SERVICE_STATUS = {
+    "state": "ok",  # ok | warning | down
+    "message": "همه سرورها پایدار و در حال کار هستن ✅"
+}
 
 ORDERS_FILE = "orders.json"
 USERS_FILE = "users.json"
 SUPPORT_FILE = "support_sessions.json"
+TRIALS_FILE = "trials.json"
+USAGE_FILE = "usage.json"
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
@@ -66,6 +102,18 @@ def load_support_sessions():
 
 def save_support_sessions(data):
     save_json(SUPPORT_FILE, data)
+
+def load_trials():
+    return load_json(TRIALS_FILE)
+
+def save_trials(data):
+    save_json(TRIALS_FILE, data)
+
+def load_usage():
+    return load_json(USAGE_FILE)
+
+def save_usage(data):
+    save_json(USAGE_FILE, data)
 
 # ==================== کاربران / رفرال ====================
 def ensure_user(user):
@@ -166,7 +214,10 @@ def start(message):
 
     markup = types.InlineKeyboardMarkup()
     markup.add(types.InlineKeyboardButton("🛒 خرید اشتراک", callback_data="buy"))
+    markup.add(types.InlineKeyboardButton("🎟️ اشتراک من", callback_data="my_subscription"))
+    markup.add(types.InlineKeyboardButton("🧪 دریافت کانفیگ تست رایگان", callback_data="get_trial"))
     markup.add(types.InlineKeyboardButton("🎁 معرفی به دوستان", callback_data="referral_info"))
+    markup.add(types.InlineKeyboardButton("📡 وضعیت سرویس", callback_data="service_status"))
     markup.add(types.InlineKeyboardButton("📞 پشتیبانی", callback_data="support"))
     bot.send_message(
         message.chat.id,
@@ -183,6 +234,148 @@ def start(message):
         parse_mode="Markdown",
         reply_markup=markup
     )
+
+# ==================== کانفیگ تست رایگان ====================
+@bot.callback_query_handler(func=lambda call: call.data == "get_trial")
+def get_trial(call):
+    trials = load_trials()
+    uid = str(call.from_user.id)
+
+    if uid in trials:
+        bot.send_message(
+            call.message.chat.id,
+            "⚠️ *قبلاً کانفیگ تست گرفتی*\n\n"
+            "━━━━━━━━━━━━━━━\n"
+            "هر کاربر فقط یک بار می‌تونه کانفیگ تست رایگان بگیره.\n"
+            "برای استفاده کامل، از بخش «🛒 خرید اشتراک» اقدام کن.\n"
+            "━━━━━━━━━━━━━━━",
+            parse_mode="Markdown"
+        )
+        return
+
+    if not TRIAL_CONFIGS:
+        bot.send_message(call.message.chat.id, "😔 فعلاً کانفیگ تستی موجود نیست.")
+        return
+
+    # انتخاب چرخشی از انبار ۵ تایی بر اساس تعداد تست‌های داده‌شده تا حالا
+    index = len(trials) % len(TRIAL_CONFIGS)
+    config = TRIAL_CONFIGS[index]
+
+    trials[uid] = {
+        "user_id": call.from_user.id,
+        "first_name": call.from_user.first_name or "-",
+        "username": call.from_user.username or "-",
+        "date": datetime.now().strftime("%Y-%m-%d %H:%M"),
+        "config_index": index
+    }
+    save_trials(trials)
+
+    bot.send_message(
+        call.message.chat.id,
+        f"🧪 *کانفیگ تست رایگان شما*\n\n"
+        f"━━━━━━━━━━━━━━━\n"
+        f"⏳ اعتبار: *{TRIAL_HOURS} ساعت*\n"
+        f"━━━━━━━━━━━━━━━\n\n"
+        f"`{config}`\n\n"
+        f"━━━━━━━━━━━━━━━\n"
+        f"📱 *راهنمای نصب:*\n\n"
+        f"🍎 iOS → *Streisand*\n"
+        f"🤖 Android → *V2RayNG*\n"
+        f"💻 ویندوز → *Hiddify*\n\n"
+        f"━━━━━━━━━━━━━━━\n"
+        f"اگه راضی بودی، از بخش «🛒 خرید اشتراک» پلن کامل رو تهیه کن 🙏",
+        parse_mode="Markdown"
+    )
+
+    try:
+        bot.send_message(
+            ADMIN_ID,
+            f"🧪 کانفیگ تست برای کاربر {call.from_user.first_name or '-'} "
+            f"(`{call.from_user.id}`) ارسال شد.",
+            parse_mode="Markdown"
+        )
+    except Exception:
+        pass
+
+# ==================== وضعیت سرویس ====================
+@bot.callback_query_handler(func=lambda call: call.data == "service_status")
+def service_status(call):
+    state = SERVICE_STATUS.get("state", "ok")
+    emoji = {"ok": "🟢", "warning": "🟡", "down": "🔴"}.get(state, "🟢")
+    label = {"ok": "پایدار", "warning": "اختلال جزئی", "down": "قطعی"}.get(state, "پایدار")
+
+    markup = types.InlineKeyboardMarkup()
+    markup.add(types.InlineKeyboardButton("🔙 برگشت", callback_data="back_start"))
+
+    bot.send_message(
+        call.message.chat.id,
+        f"📡 *وضعیت سرویس*\n\n"
+        f"━━━━━━━━━━━━━━━\n"
+        f"{emoji} وضعیت کلی: *{label}*\n\n"
+        f"{SERVICE_STATUS.get('message', '-')}\n"
+        f"━━━━━━━━━━━━━━━",
+        parse_mode="Markdown",
+        reply_markup=markup
+    )
+
+# ==================== اشتراک من ====================
+@bot.callback_query_handler(func=lambda call: call.data == "my_subscription")
+def my_subscription(call):
+    orders = load_orders()
+    order = orders.get(str(call.from_user.id))
+
+    markup = types.InlineKeyboardMarkup()
+
+    if not order or order.get("status") != "confirmed":
+        markup.add(types.InlineKeyboardButton("🛒 خرید اشتراک", callback_data="buy"))
+        markup.add(types.InlineKeyboardButton("🔙 برگشت", callback_data="back_start"))
+        bot.send_message(
+            call.message.chat.id,
+            "🎟️ *اشتراک من*\n\n"
+            "━━━━━━━━━━━━━━━\n"
+            "هنوز اشتراک فعالی نداری.\n"
+            "━━━━━━━━━━━━━━━",
+            parse_mode="Markdown",
+            reply_markup=markup
+        )
+        return
+
+    expiry_str = order.get("expiry_date")
+    days_left_text = ""
+    if expiry_str:
+        try:
+            expiry = datetime.strptime(expiry_str, "%Y-%m-%d").date()
+            days_left = (expiry - datetime.now().date()).days
+            if days_left >= 0:
+                days_left_text = f"⏳ روزهای باقیمانده: *{days_left} روز*\n"
+            else:
+                days_left_text = "⚠️ *اشتراک شما منقضی شده*\n"
+        except ValueError:
+            pass
+
+    markup.add(types.InlineKeyboardButton("🔄 تمدید همین پلن", callback_data=f"renew_{order.get('plan_key')}"))
+    markup.add(types.InlineKeyboardButton("🔙 برگشت", callback_data="back_start"))
+
+    bot.send_message(
+        call.message.chat.id,
+        f"🎟️ *اشتراک من*\n\n"
+        f"━━━━━━━━━━━━━━━\n"
+        f"📦 پلن: *{order.get('plan_name', '-')}*\n"
+        f"📅 تاریخ انقضا: *{expiry_str or '-'}*\n"
+        f"{days_left_text}"
+        f"━━━━━━━━━━━━━━━",
+        parse_mode="Markdown",
+        reply_markup=markup
+    )
+
+# ==================== تمدید با یک کلیک ====================
+@bot.callback_query_handler(func=lambda call: call.data.startswith("renew_"))
+def renew_plan(call):
+    plan_key = call.data.replace("renew_", "")
+    # همون مسیر انتخاب پلن رو صدا می‌زنیم، انگار کاربر دوباره همین پلن رو انتخاب کرده
+    fake_call = call
+    fake_call.data = f"plan_{plan_key}"
+    select_plan(fake_call)
 
 # ==================== معرفی به دوستان ====================
 @bot.callback_query_handler(func=lambda call: call.data == "referral_info")
@@ -436,6 +629,7 @@ def receive_receipt(message):
         bot.send_document(ADMIN_ID, message.document.file_id, caption=caption, parse_mode="Markdown", reply_markup=markup)
 
     orders[str(message.from_user.id)]["status"] = "waiting_confirm"
+    orders[str(message.from_user.id)]["receipt_time"] = datetime.now().strftime("%Y-%m-%d %H:%M")
     save_orders(orders)
 
     bot.send_message(
@@ -455,17 +649,31 @@ def confirm_payment(call):
     if call.from_user.id != ADMIN_ID:
         return
     user_id = int(call.data.split("_")[1])
+
+    orders = load_orders()
+    order = orders.get(str(user_id), {})
+    plan_key = order.get("plan_key")
+    stock = CONFIG_STOCK.get(plan_key, [])
+
+    if stock:
+        # کانفیگ آماده موجوده — خودکار و آنی ارسال میشه
+        config = stock.pop(0)
+        CONFIG_STOCK[plan_key] = stock
+        bot.answer_callback_query(call.id, "✅ از انبار ارسال شد")
+        finalize_and_send_config(user_id, config)
+        return
+
     bot.answer_callback_query(call.id, "✅ کانفیگ رو بفرست")
     msg = bot.send_message(
         ADMIN_ID,
         f"📋 *ارسال کانفیگ*\n\n"
-        f"کانفیگ کاربر `{user_id}` رو بفرست 👇",
+        f"کانفیگ کاربر `{user_id}` رو بفرست 👇\n"
+        f"_(انبار این پلن خالیه، دستی وارد کن)_",
         parse_mode="Markdown"
     )
-    bot.register_next_step_handler(msg, lambda m: send_config(m, user_id))
+    bot.register_next_step_handler(msg, lambda m: finalize_and_send_config(user_id, m.text.strip()))
 
-def send_config(message, user_id):
-    config = message.text.strip()
+def finalize_and_send_config(user_id, config):
     orders = load_orders()
     order = orders.get(str(user_id), {})
 
@@ -495,6 +703,18 @@ def send_config(message, user_id):
     # اگه تخفیفی برای این خرید استفاده شده بود، مصرف شده و صفر میشه
     if order.get("discount_applied"):
         clear_user_discount(user_id)
+
+    # جای خالی برای ردیابی مصرف حجم (پلن‌های حجمی) — بعداً به پنل سرور/پراکسی وصل میشه
+    if order.get("plan_key", "").startswith("gb_"):
+        usage = load_usage()
+        usage[uid] = {
+            "plan_key": order.get("plan_key"),
+            "plan_name": order.get("plan_name"),
+            "total_gb": None,  # TODO: بعد از اتصال به پنل سرور مقدار واقعی رو اینجا بذار
+            "used_gb": 0,      # TODO: مقدار مصرفی واقعی از پنل سرور خونده بشه
+            "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M")
+        }
+        save_usage(usage)
 
     bot.send_message(
         user_id,
@@ -631,21 +851,241 @@ def admin_reply_to_support(message):
 def back_start(call):
     start(call.message)
 
-# ==================== پیام همگانی (Broadcast) — دکمه پنل ادمین ====================
+# ==================== پنل مدیریت جامع ادمین ====================
 @bot.message_handler(commands=["admin"])
 def admin_panel(message):
     if message.from_user.id != ADMIN_ID:
         return
+    show_admin_panel(message.chat.id)
+
+def show_admin_panel(chat_id, message_id=None):
+    orders = load_orders()
+    pending_count = sum(1 for o in orders.values() if o.get("status") == "waiting_confirm")
+
     markup = types.InlineKeyboardMarkup()
+    markup.add(types.InlineKeyboardButton(
+        f"⏳ سفارشات در انتظار تایید ({pending_count})", callback_data="admin_pending"
+    ))
+    markup.add(types.InlineKeyboardButton("📊 گزارش مالی", callback_data="admin_report"))
+    markup.add(types.InlineKeyboardButton("📋 لیست کامل سفارشات", callback_data="admin_orders"))
     markup.add(types.InlineKeyboardButton("📢 ارسال پیام همگانی", callback_data="admin_broadcast"))
-    markup.add(types.InlineKeyboardButton("📋 لیست سفارشات", callback_data="admin_orders"))
-    bot.send_message(message.chat.id, "🛠️ *پنل مدیریت*", parse_mode="Markdown", reply_markup=markup)
+    markup.add(types.InlineKeyboardButton("📡 تغییر وضعیت سرویس", callback_data="admin_status"))
+    markup.add(types.InlineKeyboardButton("🎟️ ثبت کد تخفیف دستی", callback_data="admin_manual_discount"))
+    markup.add(types.InlineKeyboardButton("🧪 آمار کانفیگ‌های تست", callback_data="admin_trials"))
+    markup.add(types.InlineKeyboardButton("👥 آمار کاربران", callback_data="admin_users_stats"))
+
+    text = (
+        "🛠️ *پنل مدیریت Lenshik VPN*\n\n"
+        "━━━━━━━━━━━━━━━\n"
+        "از دکمه‌های زیر برای مدیریت ربات استفاده کن 👇\n"
+        "━━━━━━━━━━━━━━━"
+    )
+
+    if message_id:
+        try:
+            bot.edit_message_text(text, chat_id, message_id, parse_mode="Markdown", reply_markup=markup)
+            return
+        except Exception:
+            pass
+    bot.send_message(chat_id, text, parse_mode="Markdown", reply_markup=markup)
+
+@bot.callback_query_handler(func=lambda call: call.data == "admin_panel_back")
+def admin_panel_back(call):
+    if call.from_user.id != ADMIN_ID:
+        return
+    show_admin_panel(call.message.chat.id, call.message.message_id)
 
 @bot.callback_query_handler(func=lambda call: call.data == "admin_orders")
 def admin_orders_cb(call):
     if call.from_user.id != ADMIN_ID:
         return
     show_orders(call.message)
+
+# ---- سفارشات در انتظار تایید ----
+@bot.callback_query_handler(func=lambda call: call.data == "admin_pending")
+def admin_pending(call):
+    if call.from_user.id != ADMIN_ID:
+        return
+    orders = load_orders()
+    pending = {uid: o for uid, o in orders.items() if o.get("status") == "waiting_confirm"}
+
+    markup = types.InlineKeyboardMarkup()
+    markup.add(types.InlineKeyboardButton("🔙 برگشت به پنل", callback_data="admin_panel_back"))
+
+    if not pending:
+        bot.send_message(call.message.chat.id, "✅ سفارش در انتظار تاییدی وجود نداره.", reply_markup=markup)
+        return
+
+    text = "⏳ *سفارشات در انتظار تایید:*\n\n━━━━━━━━━━━━━━━\n"
+    for uid, o in pending.items():
+        text += f"👤 *{o.get('first_name','-')}* (`{uid}`)\n"
+        text += f"📦 {o.get('plan_name','-')} — {o.get('price',0):,} تومان\n"
+        text += f"🕐 رسید: {o.get('receipt_time', o.get('date','-'))}\n"
+        text += "━━━━━━━━━━━━━━━\n"
+    bot.send_message(call.message.chat.id, text, parse_mode="Markdown", reply_markup=markup)
+
+# ---- گزارش مالی ----
+@bot.callback_query_handler(func=lambda call: call.data == "admin_report")
+def admin_report(call):
+    if call.from_user.id != ADMIN_ID:
+        return
+
+    orders = load_orders()
+    confirmed = [o for o in orders.values() if o.get("status") == "confirmed"]
+
+    now = datetime.now()
+    today_str = now.strftime("%Y-%m-%d")
+    month_str = now.strftime("%Y-%m")
+
+    total_all = sum(o.get("price", 0) for o in confirmed)
+    total_today = sum(o.get("price", 0) for o in confirmed if o.get("confirm_date", "").startswith(today_str))
+    total_month = sum(o.get("price", 0) for o in confirmed if o.get("confirm_date", "").startswith(month_str))
+
+    plan_counts = {}
+    for o in confirmed:
+        name = o.get("plan_name", "-")
+        plan_counts[name] = plan_counts.get(name, 0) + 1
+
+    top_plans = sorted(plan_counts.items(), key=lambda x: x[1], reverse=True)[:5]
+    top_plans_text = "\n".join([f"• {name}: {count} فروش" for name, count in top_plans]) or "—"
+
+    markup = types.InlineKeyboardMarkup()
+    markup.add(types.InlineKeyboardButton("🔙 برگشت به پنل", callback_data="admin_panel_back"))
+
+    bot.send_message(
+        call.message.chat.id,
+        f"📊 *گزارش مالی*\n\n"
+        f"━━━━━━━━━━━━━━━\n"
+        f"💰 درآمد امروز: *{total_today:,} تومان*\n"
+        f"💰 درآمد این ماه: *{total_month:,} تومان*\n"
+        f"💰 درآمد کل: *{total_all:,} تومان*\n"
+        f"━━━━━━━━━━━━━━━\n"
+        f"🧾 تعداد کل فروش‌ها: *{len(confirmed)}*\n"
+        f"━━━━━━━━━━━━━━━\n"
+        f"🏆 *پرفروش‌ترین پلن‌ها:*\n{top_plans_text}\n"
+        f"━━━━━━━━━━━━━━━",
+        parse_mode="Markdown",
+        reply_markup=markup
+    )
+
+# ---- تغییر وضعیت سرویس ----
+@bot.callback_query_handler(func=lambda call: call.data == "admin_status")
+def admin_status(call):
+    if call.from_user.id != ADMIN_ID:
+        return
+    markup = types.InlineKeyboardMarkup()
+    markup.add(types.InlineKeyboardButton("🟢 پایدار", callback_data="setstatus_ok"))
+    markup.add(types.InlineKeyboardButton("🟡 اختلال جزئی", callback_data="setstatus_warning"))
+    markup.add(types.InlineKeyboardButton("🔴 قطعی", callback_data="setstatus_down"))
+    markup.add(types.InlineKeyboardButton("🔙 برگشت به پنل", callback_data="admin_panel_back"))
+    bot.send_message(
+        call.message.chat.id,
+        f"📡 *وضعیت فعلی:* {SERVICE_STATUS.get('state')}\n\n"
+        f"وضعیت جدید رو انتخاب کن:",
+        parse_mode="Markdown",
+        reply_markup=markup
+    )
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith("setstatus_"))
+def set_status(call):
+    if call.from_user.id != ADMIN_ID:
+        return
+    new_state = call.data.replace("setstatus_", "")
+    SERVICE_STATUS["state"] = new_state
+    bot.answer_callback_query(call.id, "✅ وضعیت بروزرسانی شد")
+    msg = bot.send_message(
+        call.message.chat.id,
+        "متن توضیح وضعیت رو بنویس (برای نمایش به کاربرها):"
+    )
+    bot.register_next_step_handler(msg, save_status_message)
+
+def save_status_message(message):
+    if message.from_user.id != ADMIN_ID:
+        return
+    SERVICE_STATUS["message"] = message.text.strip()
+    bot.send_message(ADMIN_ID, "✅ وضعیت سرویس ذخیره شد.")
+
+# ---- کد تخفیف دستی ----
+@bot.callback_query_handler(func=lambda call: call.data == "admin_manual_discount")
+def admin_manual_discount(call):
+    if call.from_user.id != ADMIN_ID:
+        return
+    msg = bot.send_message(
+        call.message.chat.id,
+        "🎟️ *ثبت تخفیف دستی*\n\n"
+        "آیدی عددی کاربر و درصد تخفیف رو اینطوری بفرست:\n"
+        "`123456789 15`",
+        parse_mode="Markdown"
+    )
+    bot.register_next_step_handler(msg, apply_manual_discount)
+
+def apply_manual_discount(message):
+    if message.from_user.id != ADMIN_ID:
+        return
+    try:
+        parts = message.text.strip().split()
+        target_id, percent = int(parts[0]), int(parts[1])
+    except (ValueError, IndexError):
+        bot.send_message(ADMIN_ID, "❌ فرمت اشتباهه. مثال درست: 123456789 15")
+        return
+
+    users = load_users()
+    uid = str(target_id)
+    if uid not in users:
+        bot.send_message(ADMIN_ID, "❌ همچین کاربری توی دیتابیس نیست.")
+        return
+
+    users[uid]["discount_percent"] = percent
+    save_users(users)
+    bot.send_message(ADMIN_ID, f"✅ تخفیف {percent}٪ برای کاربر {target_id} ثبت شد.")
+    try:
+        bot.send_message(
+            target_id,
+            f"🎁 یک کد تخفیف *{percent}٪* برات فعال شد! توی خرید بعدی اعمال میشه 🎉",
+            parse_mode="Markdown"
+        )
+    except Exception:
+        pass
+
+# ---- آمار کانفیگ‌های تست ----
+@bot.callback_query_handler(func=lambda call: call.data == "admin_trials")
+def admin_trials(call):
+    if call.from_user.id != ADMIN_ID:
+        return
+    trials = load_trials()
+    markup = types.InlineKeyboardMarkup()
+    markup.add(types.InlineKeyboardButton("🔙 برگشت به پنل", callback_data="admin_panel_back"))
+    bot.send_message(
+        call.message.chat.id,
+        f"🧪 *آمار کانفیگ تست*\n\n"
+        f"━━━━━━━━━━━━━━━\n"
+        f"👥 تعداد کل تست‌های داده‌شده: *{len(trials)}*\n"
+        f"📦 تعداد کانفیگ در انبار: *{len(TRIAL_CONFIGS)}*\n"
+        f"━━━━━━━━━━━━━━━",
+        parse_mode="Markdown",
+        reply_markup=markup
+    )
+
+# ---- آمار کاربران ----
+@bot.callback_query_handler(func=lambda call: call.data == "admin_users_stats")
+def admin_users_stats(call):
+    if call.from_user.id != ADMIN_ID:
+        return
+    users = load_users()
+    orders = load_orders()
+    active = sum(1 for o in orders.values() if o.get("status") == "confirmed")
+    markup = types.InlineKeyboardMarkup()
+    markup.add(types.InlineKeyboardButton("🔙 برگشت به پنل", callback_data="admin_panel_back"))
+    bot.send_message(
+        call.message.chat.id,
+        f"👥 *آمار کاربران*\n\n"
+        f"━━━━━━━━━━━━━━━\n"
+        f"👤 کل کاربران ثبت‌شده: *{len(users)}*\n"
+        f"✅ اشتراک‌های فعال: *{active}*\n"
+        f"━━━━━━━━━━━━━━━",
+        parse_mode="Markdown",
+        reply_markup=markup
+    )
 
 @bot.callback_query_handler(func=lambda call: call.data == "admin_broadcast")
 def admin_broadcast(call):
@@ -764,8 +1204,51 @@ def check_expiring_subscriptions():
     if changed:
         save_orders(orders)
 
+# ==================== هشدار سفارشات معلق (خودکار) ====================
+def check_pending_orders():
+    """اگه سفارشی بیش از PENDING_ORDER_ALERT_HOURS ساعت در انتظار تایید مونده به ادمین یادآوری کن"""
+    orders = load_orders()
+    now = datetime.now()
+    changed = False
+
+    for uid, order in orders.items():
+        if order.get("status") != "waiting_confirm":
+            continue
+        receipt_time_str = order.get("receipt_time")
+        if not receipt_time_str:
+            continue
+
+        try:
+            receipt_time = datetime.strptime(receipt_time_str, "%Y-%m-%d %H:%M")
+        except ValueError:
+            continue
+
+        hours_passed = (now - receipt_time).total_seconds() / 3600
+
+        if hours_passed >= PENDING_ORDER_ALERT_HOURS and not order.get("pending_alert_sent"):
+            try:
+                bot.send_message(
+                    ADMIN_ID,
+                    f"⚠️ *هشدار: سفارش معلق مونده!*\n\n"
+                    f"━━━━━━━━━━━━━━━\n"
+                    f"👤 {order.get('first_name','-')} (`{uid}`)\n"
+                    f"📦 {order.get('plan_name','-')}\n"
+                    f"🕐 رسید ارسال‌شده: {receipt_time_str}\n"
+                    f"⌛️ بیش از {PENDING_ORDER_ALERT_HOURS} ساعته منتظر تاییده!\n"
+                    f"━━━━━━━━━━━━━━━",
+                    parse_mode="Markdown"
+                )
+                order["pending_alert_sent"] = True
+                changed = True
+            except Exception:
+                pass
+
+    if changed:
+        save_orders(orders)
+
 def run_scheduler():
     schedule.every().day.at("10:00").do(check_expiring_subscriptions)
+    schedule.every(30).minutes.do(check_pending_orders)
     while True:
         schedule.run_pending()
         time.sleep(30)
