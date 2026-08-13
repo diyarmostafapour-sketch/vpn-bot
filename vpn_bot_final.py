@@ -265,7 +265,7 @@ def send_config(message, user_id):
         f"💻 ویندوز → *Hiddify*\n\n"
         f"━━━━━━━━━━━━━━━\n"
         f"🙏 ممنون از اعتمادت\n"
-        f"مشکل داشتی پیام بده 👉 @lenshikadmin",
+        f"مشکل داشتی پیام بده 👉 @lenshikad",
         parse_mode="Markdown"
     )
 
@@ -286,7 +286,7 @@ def reject_payment(call):
         "رسید ارسالی تایید نشد.\n\n"
         "🔹 رسید واضح‌تر ارسال کن\n"
         "🔹 یا با پشتیبانی تماس بگیر\n\n"
-        "📞 پشتیبانی: @lenshikadmin\n"
+        "📞 پشتیبانی: @lenshikad\n"
         "━━━━━━━━━━━━━━━",
         parse_mode="Markdown"
     )
@@ -300,7 +300,7 @@ def support(call):
         "📞 *پشتیبانی Lenshik VPN*\n\n"
         "━━━━━━━━━━━━━━━\n"
         "🕐 ساعات پاسخگویی: ۸ صبح تا ۱۲ شب\n"
-        "👨‍💻 پشتیبان: @lenshikadmin\n"
+        "👨‍💻 پشتیبان: @lenshikad\n"
         "━━━━━━━━━━━━━━━\n\n"
         "برای ارتباط روی یوزرنیم بالا کلیک کن 👆",
         parse_mode="Markdown"
