@@ -96,7 +96,7 @@ def show_limited(call):
     markup.add(*buttons)
     markup.add(types.InlineKeyboardButton("🔙 برگشت", callback_data="buy"))
     bot.edit_message_text(
-        "📦 *پلن حجمی — ۱ ماهه:*\nهر گیگ 6,000 تومان",
+        "📦 *پلن حجمی — ۱ ماهه:*\n",
         call.message.chat.id,
         call.message.message_id,
         parse_mode="Markdown",
