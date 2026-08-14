@@ -291,7 +291,7 @@ def get_trial(call):
         f"━━━━━━━━━━━━━━━\n"
         f"📱 *راهنمای نصب:*\n\n"
          f"*پیشنهادی برای تجربه بهتر Hiddify ⭐*\n\n"
-        f"🍎 iOS → *Hiddify - V2BOX- Npv Tunnel - streisand*\n"
+        f"🍎 iOS → *Hiddify - V2BOX*\n"
         f"🤖 Android → *Hiddify-V2ray*\n"
         f"💻 windows→ *Hiddify-V2ray*\n\n"
         f"اگه راضی بودی، از بخش «🛒 خرید اشتراک» پلن کامل رو تهیه کن 🙏",
@@ -772,7 +772,7 @@ def finalize_and_send_config(user_id, config):
         f"━━━━━━━━━━━━━━━\n"
         f"📱 *راهنمای نصب:*\n\n"
          f"*پیشنهادی برای تجربه بهتر Hiddify ⭐*\n\n"
-        f"🍎 iOS → *Hiddify - V2BOX- Npv Tunnel - streisand*\n"
+        f"🍎 iOS → *Hiddify - V2BOX*\n"
         f"🤖 Android → *Hiddify-V2ray*\n"
         f"💻 windows→ *Hiddify-V2ray*\n\n"
         f"━━━━━━━━━━━━━━━\n"
