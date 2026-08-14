@@ -290,10 +290,10 @@ def get_trial(call):
         f"`{config}`\n\n"
         f"━━━━━━━━━━━━━━━\n"
         f"📱 *راهنمای نصب:*\n\n"
-         f"*پیشنهادی برای تجربه بهتر Hiddify ⭐*\n"
+         f"*پیشنهادی برای تجربه بهتر Hiddify ⭐*\n\n"
         f"🍎 iOS → *Hiddify - V2BOX- Npv Tunnel - streisand*\n"
         f"🤖 Android → *Hiddify-V2ray*\n"
-        f"💻 ویندوز → *Hiddify-V2ray*\n\n"
+        f"💻 windows→ *Hiddify-V2ray*\n\n"
         f"اگه راضی بودی، از بخش «🛒 خرید اشتراک» پلن کامل رو تهیه کن 🙏",
         parse_mode="Markdown"
     )
@@ -771,10 +771,10 @@ def finalize_and_send_config(user_id, config):
         f"`{config}`\n\n"
         f"━━━━━━━━━━━━━━━\n"
         f"📱 *راهنمای نصب:*\n\n"
-         f"*پیشنهادی برای تجربه بهتر Hiddify ⭐*\n"
+         f"*پیشنهادی برای تجربه بهتر Hiddify ⭐*\n\n"
         f"🍎 iOS → *Hiddify - V2BOX- Npv Tunnel - streisand*\n"
         f"🤖 Android → *Hiddify-V2ray*\n"
-        f"💻 ویندوز → *Hiddify-V2ray*\n\n"
+        f"💻 windows→ *Hiddify-V2ray*\n\n"
         f"━━━━━━━━━━━━━━━\n"
         f"🙏 ممنون از اعتمادت\n"
         f"مشکل داشتی پیام بده 👉 @lenshikad",
