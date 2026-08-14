@@ -7,6 +7,10 @@ import threading
 import schedule
 from datetime import datetime, timedelta
 
+# قفل برای جلوگیری از تداخل وقتی چند کاربر همزمان دکمه‌ای رو می‌زنن
+# که باعث میشه دو نفر با هم یه منبع محدود (مثل کانفیگ تست) رو بگیرن
+trial_lock = threading.Lock()
+
 # ==================== تنظیمات ====================
 BOT_TOKEN = "8883749112:AAGWXJgS-YuVwkHNBEysk0IAXNoLSrhoj7k"
 ADMIN_ID = 775127399
@@ -36,7 +40,7 @@ PENDING_ORDER_ALERT_HOURS = 2  # اگه سفارش این‌قدر ساعت مع
 # ==================== انبار کانفیگ تست رایگان ====================
 # اینجا ۵ تا کانفیگ تست رو بذار — کاربر با زدن دکمه یکی از این‌ها رو خودکار می‌گیره
 TRIAL_CONFIGS = [
-   "https://axonnetwork0market.patoghyou.ir/uBoJwwxhi28wz9KArkDJ/2a0b6c7f-d82a-451e-a805-431b34c58d0e/#تست1225",
+    "https://axonnetwork0market.patoghyou.ir/uBoJwwxhi28wz9KArkDJ/f27e1735-289d-43e3-8739-40f811ecb5ea/#1278-تست-lenshik-vpn",
     "https://axonnetwork0market.patoghyou.ir/uBoJwwxhi28wz9KArkDJ/91a65f32-0905-43c0-8fdb-e7a806b08367/#تست-1228",
     "https://axonnetwork0market.patoghyou.ir/uBoJwwxhi28wz9KArkDJ/af43d5ae-4199-487e-84a1-7a544162c9b0/#تست1243",
     "https://axonnetwork0market.patoghyou.ir/uBoJwwxhi28wz9KArkDJ/879493e1-4520-42a0-84a0-baf7db0097da/#تست-1256",
@@ -48,16 +52,16 @@ TRIAL_HOURS = 24  # مدت اعتبار کانفیگ تست (فقط برای ا�
 # برای هر پلن یه لیست از کانفیگ‌های آماده بذار. وقتی خالی باشه (لیست []),
 # ربات مثل قبل کانفیگ رو دستی از ادمین می‌پرسه.
 CONFIG_STOCK = {
-    "unlimited_1": [],
-    "unlimited_2": [],
-    "gb_30": [],
-    "gb_35": [],
-    "gb_40": [],
-    "gb_50": [],
-    "gb_60": [],
-    "gb_70": [],
-    "gb_80": [],
-    "gb_90": [],
+    "unlimited_1": ["https://axonnetwork0market.patoghyou.ir/uBoJwwxhi28wz9KArkDJ/b8159021-44a4-40ca-9580-3f4c059ab981/#4151-lenshik-vpn"],
+    "unlimited_2": ["https://axonnetwork0market.patoghyou.ir/uBoJwwxhi28wz9KArkDJ/377338db-4aad-4384-8599-0c28bc947a96/#8695-lenshik-vpn"],
+    "gb_30": ["https://axonnetwork0market.patoghyou.ir/uBoJwwxhi28wz9KArkDJ/4b9dbd6b-2077-4aba-8784-5f698090f400/#5784-lenshik-vpn"],
+    "gb_35": ["https://axonnetwork0market.patoghyou.ir/uBoJwwxhi28wz9KArkDJ/4e73b8ce-1ab3-40b3-97ad-4955b3fcf2a6/#6841-lenshik-vpn"],
+    "gb_40": ["https://axonnetwork0market.patoghyou.ir/uBoJwwxhi28wz9KArkDJ/e9053691-e3de-436f-a3f8-23923e451d99/#3574-lenshik-vpn"],
+    "gb_50": ["https://axonnetwork0market.patoghyou.ir/uBoJwwxhi28wz9KArkDJ/5d628c23-708a-4b0c-98a1-8bf82d4eb687/#0541-lenshik-vpn"],
+    "gb_60": ["https://axonnetwork0market.patoghyou.ir/uBoJwwxhi28wz9KArkDJ/85ace95b-57bd-4dad-869e-06663d77fc04/#3852-lenshik-vpn"],
+    "gb_70": ["https://axonnetwork0market.patoghyou.ir/uBoJwwxhi28wz9KArkDJ/f1740d17-7ffd-43d9-98d9-3c980f7bdcac/#8024-lenshik-vpn"],
+    "gb_80": ["https://axonnetwork0market.patoghyou.ir/uBoJwwxhi28wz9KArkDJ/7077ac5c-b709-43b4-9583-dc91c1e50cbd/#8695-lenshik-vpn"],
+    "gb_90": ["https://axonnetwork0market.patoghyou.ir/uBoJwwxhi28wz9KArkDJ/29959d0f-d198-4f52-946f-233e7c1887f2/#8084-lenshik-vpn"],
 }
 
 # ==================== وضعیت سرویس ====================
@@ -238,48 +242,52 @@ def start(message):
 # ==================== کانفیگ تست رایگان ====================
 @bot.callback_query_handler(func=lambda call: call.data == "get_trial")
 def get_trial(call):
-    trials = load_trials()
     uid = str(call.from_user.id)
 
-    if uid in trials:
-        bot.send_message(
-            call.message.chat.id,
-            "⚠️ *قبلاً کانفیگ تست گرفتی*\n\n"
-            "━━━━━━━━━━━━━━━\n"
-            "هر کاربر فقط یک بار می‌تونه کانفیگ تست رایگان بگیره.\n"
-            "برای استفاده کامل، از بخش «🛒 خرید اشتراک» اقدام کن.\n"
-            "━━━━━━━━━━━━━━━",
-            parse_mode="Markdown"
-        )
-        return
+    # کل مراحل خوندن، چک کردن و ذخیره باید یکجا و بدون وقفه انجام بشه
+    # وگرنه اگه دو کاربر همزمان دکمه رو بزنن، هر دو یه کانفیگ یکسان می‌گیرن
+    with trial_lock:
+        trials = load_trials()
 
-    given_count = len(trials)
+        if uid in trials:
+            bot.send_message(
+                call.message.chat.id,
+                "⚠️ *قبلاً کانفیگ تست گرفتی*\n\n"
+                "━━━━━━━━━━━━━━━\n"
+                "هر کاربر فقط یک بار می‌تونه کانفیگ تست رایگان بگیره.\n"
+                "برای استفاده کامل، از بخش «🛒 خرید اشتراک» اقدام کن.\n"
+                "━━━━━━━━━━━━━━━",
+                parse_mode="Markdown"
+            )
+            return
 
-    # انبار کانفیگ تست تموم شده — دیگه چیزی برای دادن نیست
-    if given_count >= len(TRIAL_CONFIGS):
-        bot.send_message(
-            call.message.chat.id,
-            "😔 *فعلاً کانفیگ تست موجود نیست*\n\n"
-            "━━━━━━━━━━━━━━━\n"
-            "انبار کانفیگ‌های تست تموم شده.\n"
-            "می‌تونی مستقیم از بخش «🛒 خرید اشتراک» اقدام کنی.\n"
-            "━━━━━━━━━━━━━━━",
-            parse_mode="Markdown"
-        )
-        return
+        given_count = len(trials)
 
-    # هر کانفیگ فقط یک‌بار و به ترتیب داده میشه (بدون تکرار/چرخش)
-    index = given_count
-    config = TRIAL_CONFIGS[index]
+        # انبار کانفیگ تست تموم شده — دیگه چیزی برای دادن نیست
+        if given_count >= len(TRIAL_CONFIGS):
+            bot.send_message(
+                call.message.chat.id,
+                "😔 *فعلاً کانفیگ تست موجود نیست*\n\n"
+                "━━━━━━━━━━━━━━━\n"
+                "انبار کانفیگ‌های تست تموم شده.\n"
+                "می‌تونی مستقیم از بخش «🛒 خرید اشتراک» اقدام کنی.\n"
+                "━━━━━━━━━━━━━━━",
+                parse_mode="Markdown"
+            )
+            return
 
-    trials[uid] = {
-        "user_id": call.from_user.id,
-        "first_name": call.from_user.first_name or "-",
-        "username": call.from_user.username or "-",
-        "date": datetime.now().strftime("%Y-%m-%d %H:%M"),
-        "config_index": index
-    }
-    save_trials(trials)
+        # هر کانفیگ فقط یک‌بار و به ترتیب داده میشه (بدون تکرار/چرخش)
+        index = given_count
+        config = TRIAL_CONFIGS[index]
+
+        trials[uid] = {
+            "user_id": call.from_user.id,
+            "first_name": call.from_user.first_name or "-",
+            "username": call.from_user.username or "-",
+            "date": datetime.now().strftime("%Y-%m-%d %H:%M"),
+            "config_index": index
+        }
+        save_trials(trials)
 
     bot.send_message(
         call.message.chat.id,
@@ -290,10 +298,11 @@ def get_trial(call):
         f"`{config}`\n\n"
         f"━━━━━━━━━━━━━━━\n"
         f"📱 *راهنمای نصب:*\n\n"
-         f"*پیشنهادی برای تجربه بهتر Hiddify ⭐*\n\n"
+        f"*پیشنهادی برای تجربه بهتر Hiddify ⭐*\n\n"
         f"🍎 iOS → *Hiddify - V2BOX*\n"
         f"🤖 Android → *Hiddify-V2ray*\n"
         f"💻 windows→ *Hiddify-V2ray*\n\n"
+        f"━━━━━━━━━━━━━━━\n"
         f"اگه راضی بودی، از بخش «🛒 خرید اشتراک» پلن کامل رو تهیه کن 🙏",
         parse_mode="Markdown"
     )
@@ -444,20 +453,33 @@ def referral_info(call):
     markup = types.InlineKeyboardMarkup()
     markup.add(types.InlineKeyboardButton("🔙 برگشت", callback_data="back_start"))
 
+    # پیام اول: توضیح شخصی و آمار خودِ کاربر (فقط برای خودش، فوروارد نمیشه)
     bot.send_message(
         call.message.chat.id,
         f"🎁 *معرفی به دوستان*\n\n"
         f"━━━━━━━━━━━━━━━\n"
-        f"لینک اختصاصی خودت رو به دوستات بفرست.\n"
         f"وقتی *{REFERRALS_NEEDED_FOR_DISCOUNT} نفر* با لینک تو خرید و تایید بشن،\n"
         f"یه کد تخفیف *{REFERRAL_DISCOUNT_PERCENT}٪* برات فعال میشه 🎉\n\n"
-        f"🔗 لینک تو:\n`{link}`\n\n"
         f"👥 تعداد معرفی موفق: *{count}*\n"
         f"⏳ تا تخفیف بعدی: *{remaining if remaining else REFERRALS_NEEDED_FOR_DISCOUNT} نفر* دیگه\n\n"
         f"{discount_line}"
+        f"پیام زیر رو برای دوستات بفرست تا با لینک تو وارد بشن 👇\n"
         f"━━━━━━━━━━━━━━━",
         parse_mode="Markdown",
         reply_markup=markup
+    )
+
+    # پیام دوم: پیام تبلیغاتی تمیز و آماده برای فوروارد به دوستان
+    bot.send_message(
+        call.message.chat.id,
+        f"🔐 *Lenshik VPN* — سرعت بالا، بدون قطعی\n\n"
+        f"من از این سرویس استفاده می‌کنم و راضی‌ام،\n"
+        f"بهت پیشنهاد می‌کنم امتحانش کنی 👇\n\n"
+        f"✈️ سرعت پایدار و بالا\n"
+        f"🌍 دسترسی به همه سایت‌ها\n"
+        f"🧪 کانفیگ تست رایگان قبل از خرید\n\n"
+        f"👇 از همینجا شروع کن:\n{link}",
+        parse_mode="Markdown"
     )
 
 # ==================== خرید ====================
@@ -705,6 +727,37 @@ def confirm_payment(call):
         CONFIG_STOCK[plan_key] = stock
         bot.answer_callback_query(call.id, "✅ از انبار ارسال شد")
         finalize_and_send_config(user_id, config)
+
+        plan_name = order.get("plan_name", plan_key)
+        remaining_stock = len(stock)
+
+        if remaining_stock == 0:
+            try:
+                bot.send_message(
+                    ADMIN_ID,
+                    f"🚨 *انبار کانفیگ پلن تموم شد!*\n\n"
+                    f"━━━━━━━━━━━━━━━\n"
+                    f"📦 پلن: *{plan_name}*\n"
+                    f"آخرین کانفیگ همین الان برای مشتری ارسال شد.\n"
+                    f"برو توی کد `CONFIG_STOCK['{plan_key}']` رو\n"
+                    f"با کانفیگ‌های جدید بروزرسانی کن، وگرنه از این به بعد\n"
+                    f"باید برای این پلن دستی کانفیگ بفرستی.\n"
+                    f"━━━━━━━━━━━━━━━",
+                    parse_mode="Markdown"
+                )
+            except Exception:
+                pass
+        else:
+            try:
+                bot.send_message(
+                    ADMIN_ID,
+                    f"📦 یه کانفیگ از انبار پلن *{plan_name}* فروخته شد.\n"
+                    f"باقی‌مانده: *{remaining_stock}*",
+                    parse_mode="Markdown"
+                )
+            except Exception:
+                pass
+
         return
 
     bot.answer_callback_query(call.id, "✅ کانفیگ رو بفرست")
@@ -771,7 +824,7 @@ def finalize_and_send_config(user_id, config):
         f"`{config}`\n\n"
         f"━━━━━━━━━━━━━━━\n"
         f"📱 *راهنمای نصب:*\n\n"
-         f"*پیشنهادی برای تجربه بهتر Hiddify ⭐*\n\n"
+        f"*پیشنهادی برای تجربه بهتر Hiddify ⭐*\n\n"
         f"🍎 iOS → *Hiddify - V2BOX*\n"
         f"🤖 Android → *Hiddify-V2ray*\n"
         f"💻 windows→ *Hiddify-V2ray*\n\n"
