@@ -290,10 +290,10 @@ def get_trial(call):
         f"`{config}`\n\n"
         f"━━━━━━━━━━━━━━━\n"
         f"📱 *راهنمای نصب:*\n\n"
-        f"🍎 iOS → *V2BOX-Npv Tunnel- Hiddify- streisand*\n"
+         f"*پیشنهادی برای تجربه بهتر Hiddify ⭐*\n"
+        f"🍎 iOS → *Hiddify - V2BOX- Npv Tunnel - streisand*\n"
         f"🤖 Android → *Hiddify-V2ray*\n"
         f"💻 ویندوز → *Hiddify-V2ray*\n\n"
-        f"━━━━━━━━━━━━━━━\n"
         f"اگه راضی بودی، از بخش «🛒 خرید اشتراک» پلن کامل رو تهیه کن 🙏",
         parse_mode="Markdown"
     )
@@ -771,7 +771,8 @@ def finalize_and_send_config(user_id, config):
         f"`{config}`\n\n"
         f"━━━━━━━━━━━━━━━\n"
         f"📱 *راهنمای نصب:*\n\n"
-      f"🍎 iOS → *V2BOX-Npv Tunnel- Hiddify- streisand*\n"
+         f"*پیشنهادی برای تجربه بهتر Hiddify ⭐*\n"
+        f"🍎 iOS → *Hiddify - V2BOX- Npv Tunnel - streisand*\n"
         f"🤖 Android → *Hiddify-V2ray*\n"
         f"💻 ویندوز → *Hiddify-V2ray*\n\n"
         f"━━━━━━━━━━━━━━━\n"
