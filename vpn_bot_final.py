@@ -1190,10 +1190,12 @@ def show_admin_panel(chat_id, message_id=None):
     markup.add(types.InlineKeyboardButton("📊 گزارش مالی", callback_data="admin_report"))
     markup.add(types.InlineKeyboardButton("📋 لیست کامل سفارشات", callback_data="admin_orders"))
     markup.add(types.InlineKeyboardButton("📢 ارسال پیام همگانی", callback_data="admin_broadcast"))
+    markup.add(types.InlineKeyboardButton("📨 ارسال پیام به کاربر خاص", callback_data="admin_send_user"))
     markup.add(types.InlineKeyboardButton("📡 تغییر وضعیت سرویس", callback_data="admin_status"))
     markup.add(types.InlineKeyboardButton("🎟️ ثبت کد تخفیف دستی", callback_data="admin_manual_discount"))
     markup.add(types.InlineKeyboardButton("🧪 آمار کانفیگ‌های تست", callback_data="admin_trials"))
     markup.add(types.InlineKeyboardButton("📦 اضافه کردن کانفیگ به انبار", callback_data="admin_add_stock"))
+    markup.add(types.InlineKeyboardButton("🧪 اضافه کردن کانفیگ تست", callback_data="admin_add_trial"))
     markup.add(types.InlineKeyboardButton("👥 آمار کاربران", callback_data="admin_users_stats"))
 
     text = (
@@ -1400,6 +1402,57 @@ def apply_manual_discount(message):
     except Exception as e:
         logger.exception(e)
 
+@bot.callback_query_handler(func=lambda call: call.data == "admin_send_user")
+def admin_send_user(call):
+    bot.answer_callback_query(call.id)
+    if call.from_user.id != ADMIN_ID:
+        return
+    msg = bot.send_message(
+        call.message.chat.id,
+        "📨 *ارسال پیام به کاربر خاص*\n\n"
+        "یوزرنیم یا آیدی عددی کاربر رو بفرست:\n"
+        "_(مثال: @username یا 123456789)_",
+        parse_mode="Markdown"
+    )
+    register_admin_prompt(msg, "send_user_id", get_user_id_for_message)
+
+def get_user_id_for_message(message):
+    if message.from_user.id != ADMIN_ID:
+        return
+
+    text = message.text.strip().lstrip("@")
+
+    users = load_users()
+    target_id = None
+    for uid, u in users.items():
+        if u.get("username", "").lstrip("@").lower() == text.lower():
+            target_id = int(uid)
+            break
+
+    if not target_id:
+        try:
+            target_id = int(text)
+        except ValueError:
+            bot.send_message(ADMIN_ID, "❌ کاربری با این یوزرنیم پیدا نشد.")
+            return
+
+    msg = bot.send_message(
+        ADMIN_ID,
+        f"✅ کاربر پیدا شد: `{target_id}`\n\nحالا پیامت رو بفرست 👇\n"
+        f"_(متن، عکس، یا فایل)_",
+        parse_mode="Markdown"
+    )
+    register_admin_prompt(msg, "send_user_msg", lambda m: send_message_to_user(m, target_id))
+
+def send_message_to_user(message, target_id):
+    if message.from_user.id != ADMIN_ID:
+        return
+    try:
+        bot.copy_message(target_id, message.chat.id, message.message_id)
+        bot.send_message(ADMIN_ID, f"✅ پیام به کاربر `{target_id}` ارسال شد.", parse_mode="Markdown")
+    except Exception as e:
+        bot.send_message(ADMIN_ID, f"❌ خطا: `{e}`", parse_mode="Markdown")
+
 # ==================== اضافه کردن کانفیگ به انبار ====================
 @bot.callback_query_handler(func=lambda call: call.data == "admin_add_stock")
 def admin_add_stock(call):
@@ -1461,6 +1514,50 @@ def addstock_save(message, plan_key):
         ADMIN_ID,
         f"✅ *{len(new_configs)} کانفیگ* به انبار پلن *{PLANS[plan_key]['name']}* اضافه شد.\n"
         f"📊 موجودی جدید: *{len(stock[plan_key])}*",
+        parse_mode="Markdown"
+    )
+    # ==================== اضافه کردن کانفیگ تست ====================
+@bot.callback_query_handler(func=lambda call: call.data == "admin_add_trial")
+def admin_add_trial(call):
+    bot.answer_callback_query(call.id)
+    if call.from_user.id != ADMIN_ID:
+        return
+
+    trials = load_trials()
+    given = len(trials)
+    remaining = max(0, len(TRIAL_CONFIGS) - given)
+
+    msg = bot.send_message(
+        call.message.chat.id,
+        f"🧪 *اضافه کردن کانفیگ تست*\n\n"
+        f"━━━━━━━━━━━━━━━\n"
+        f"📊 موجودی فعلی: *{remaining}*\n\n"
+        f"کانفیگ‌های جدید رو بفرست 👇\n"
+        f"_(هر خط یه کانفیگ)_",
+        parse_mode="Markdown"
+    )
+    register_admin_prompt(msg, "add_trial", save_trial_configs)
+
+def save_trial_configs(message):
+    if message.from_user.id != ADMIN_ID:
+        return
+
+    new_configs = [line.strip() for line in message.text.strip().splitlines() if line.strip()]
+
+    if not new_configs:
+        bot.send_message(ADMIN_ID, "❌ چیزی وارد نشد.")
+        return
+
+    TRIAL_CONFIGS.extend(new_configs)
+
+    trials = load_trials()
+    given = len(trials)
+    remaining = max(0, len(TRIAL_CONFIGS) - given)
+
+    bot.send_message(
+        ADMIN_ID,
+        f"✅ *{len(new_configs)} کانفیگ تست* اضافه شد.\n"
+        f"📊 موجودی جدید: *{remaining}*",
         parse_mode="Markdown"
     )
 @bot.callback_query_handler(func=lambda call: call.data == "admin_trials")
