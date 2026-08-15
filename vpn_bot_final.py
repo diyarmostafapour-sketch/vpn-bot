@@ -73,6 +73,7 @@ SERVICE_STATUS = {
 }
 
 DATA_DIR = "/app/data"
+os.makedirs(DATA_DIR, exist_ok=True)
 
 ORDERS_FILE  = f"{DATA_DIR}/orders.json"
 USERS_FILE   = f"{DATA_DIR}/users.json"
