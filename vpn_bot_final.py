@@ -71,15 +71,12 @@ SERVICE_STATUS = {
     "message": "همه سرورها پایدار و در حال کار هستن ✅"
 }
 
-DATA_DIR = "/app/data"
-os.makedirs(DATA_DIR, exist_ok=True)
-
-ORDERS_FILE  = f"{DATA_DIR}/orders.json"
-USERS_FILE   = f"{DATA_DIR}/users.json"
-SUPPORT_FILE = f"{DATA_DIR}/support_sessions.json"
-TRIALS_FILE  = f"{DATA_DIR}/trials.json"
-USAGE_FILE   = f"{DATA_DIR}/usage.json"
-STOCK_FILE   = f"{DATA_DIR}/stock.json"
+ORDERS_FILE = "orders.json"
+USERS_FILE = "users.json"
+SUPPORT_FILE = "support_sessions.json"
+TRIALS_FILE = "trials.json"
+USAGE_FILE = "usage.json"
+STOCK_FILE = "stock.json"
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
