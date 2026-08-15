@@ -630,8 +630,7 @@ def select_plan(call):
     uid = str(call.from_user.id)
     existing = orders.get(uid)
 
-    if existing and existing.get("status") in ("waiting_confirm", "processing"):
-        bot.send_message(
+if existing and existing.get("status") in ("waiting_confirm", "processing", "delivery_failed"):        bot.send_message(
             call.message.chat.id,
             "⚠️ *یه سفارش در انتظار تایید داری*\n\n"
             "━━━━━━━━━━━━━━━\n"
