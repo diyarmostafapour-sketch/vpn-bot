@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 trial_lock = threading.Lock()
 
 # ==================== تنظیمات ====================
-BOT_TOKEN = "8883749112:AAGWXJgS-YuVwkHNBEysk0IAXNoLSrhoj7k"
+BOT_TOKEN = "8883749112:AAGrF-iJD4zs9VF2-myRXaug1xubUF44uWg"
 ADMIN_ID = 775127399
 CARD_NUMBER = "6219-8619-2246-1164"
 CARD_NAME = "مصطفی پور"
@@ -53,7 +53,6 @@ TRIAL_CONFIGS = [
 TRIAL_HOURS = 24
 
 # ==================== انبار کانفیگ آماده (ذخیره دائمی در فایل) ====================
-# این دیکشنری فقط مقدار اولیه‌ست — بعد از اولین اجرا از stock.json خونده میشه
 INITIAL_CONFIG_STOCK = {
     "unlimited_1": ["https://axonnetwork0market.patoghyou.ir/uBoJwwxhi28wz9KArkDJ/b8159021-44a4-40ca-9580-3f4c059ab981/#4151-lenshik-vpn"],
     "unlimited_2": ["https://axonnetwork0market.patoghyou.ir/uBoJwwxhi28wz9KArkDJ/377338db-4aad-4384-8599-0c28bc947a96/#8695-lenshik-vpn"],
@@ -78,7 +77,7 @@ USERS_FILE = "users.json"
 SUPPORT_FILE = "support_sessions.json"
 TRIALS_FILE = "trials.json"
 USAGE_FILE = "usage.json"
-STOCK_FILE = "stock.json"  # 🆕 ذخیره دائمی انبار کانفیگ
+STOCK_FILE = "stock.json"
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
@@ -146,9 +145,7 @@ def load_usage():
 def save_usage(data):
     save_json(USAGE_FILE, data)
 
-# 🆕 انبار کانفیگ — دائمی روی فایل
 def load_stock():
-    """انبار کانفیگ رو از فایل میخونه. اگه فایل نبود، مقدار اولیه رو میسازه."""
     if os.path.exists(STOCK_FILE):
         return load_json(STOCK_FILE)
     save_json(STOCK_FILE, INITIAL_CONFIG_STOCK)
@@ -498,14 +495,13 @@ def referral_info(call):
 
     bot.send_message(
         call.message.chat.id,
-        f"🔐 *Lenshik VPN* — سرعت بالا، بدون قطعی\n\n"
+        f"🔐 Lenshik VPN — سرعت بالا، بدون قطعی\n\n"
         f"من از این سرویس استفاده می‌کنم و راضی‌ام،\n"
         f"بهت پیشنهاد می‌کنم امتحانش کنی 👇\n\n"
         f"✈️ سرعت پایدار و بالا\n"
         f"🌍 دسترسی به همه سایت‌ها\n"
         f"🧪 کانفیگ تست رایگان قبل از خرید\n\n"
-        f"👇 از همینجا شروع کن:\n{link}",
-        parse_mode="Markdown"
+        f"👇 از همینجا شروع کن:\n{link}"
     )
 
 # ==================== خرید ====================
@@ -632,7 +628,7 @@ def select_plan(call):
     uid = str(call.from_user.id)
     existing = orders.get(uid)
 
-    if existing and existing.get("status") == "waiting_confirm":
+    if existing and existing.get("status") in ("waiting_confirm", "processing"):
         bot.send_message(
             call.message.chat.id,
             "⚠️ *یه سفارش در انتظار تایید داری*\n\n"
@@ -646,7 +642,24 @@ def select_plan(call):
         )
         return
 
-    # 🆕 Order ID یکتا: ترکیب آیدی کاربر + timestamp
+    if existing and existing.get("status") == "delivery_failed":
+        bot.send_message(
+            call.message.chat.id,
+            "⚠️ *سفارش قبلی‌ات هنوز حل نشده*\n\n"
+            "━━━━━━━━━━━━━━━\n"
+            "پرداخت قبلیت تایید شده ولی ارسال کانفیگ باهاش مشکل داشته.\n"
+            "لطفاً از بخش «📞 پشتیبانی» پیام بده تا برات حلش کنیم،\n"
+            "قبل از ثبت سفارش جدید.\n"
+            "━━━━━━━━━━━━━━━",
+            parse_mode="Markdown"
+        )
+        return
+
+    # 🆕 اگه سفارش قبلی confirmed بود، تاریخ انقضاش رو نگه می‌داریم تا موقع تمدید ازش استفاده کنیم
+    previous_expiry = None
+    if existing and existing.get("status") == "confirmed":
+        previous_expiry = existing.get("expiry_date")
+
     order_id = f"{call.from_user.id}_{datetime.now().strftime('%Y%m%d%H%M%S')}"
 
     orders[uid] = {
@@ -661,7 +674,8 @@ def select_plan(call):
         "date": datetime.now().strftime("%Y-%m-%d %H:%M"),
         "user_id": call.from_user.id,
         "username": call.from_user.username or "-",
-        "first_name": call.from_user.first_name or "-"
+        "first_name": call.from_user.first_name or "-",
+        "previous_expiry": previous_expiry
     }
     save_orders(orders)
 
@@ -719,7 +733,6 @@ def receive_receipt(message):
     uid = str(message.from_user.id)
     order = orders.get(uid, {})
 
-    # 🆕 دکمه تایید حالا شامل order_id هست، نه فقط user_id
     order_id = order.get("order_id", f"{message.from_user.id}_unknown")
     confirm_cb = f"confirm_{message.from_user.id}_{order_id}"
     reject_cb = f"reject_{message.from_user.id}_{order_id}"
@@ -775,7 +788,6 @@ def confirm_payment(call):
     if call.from_user.id != ADMIN_ID:
         return
 
-    # 🆕 فرمت جدید: confirm_{user_id}_{order_id}
     parts = call.data.split("_", 2)
     if len(parts) < 3:
         bot.answer_callback_query(call.id, "⚠️ فرمت دکمه اشتباهه")
@@ -791,7 +803,6 @@ def confirm_payment(call):
         bot.answer_callback_query(call.id, "⚠️ این سفارش قابل تایید نیست (شاید قبلاً پردازش شده)")
         return
 
-    # 🆕 چک میکنه دکمه دقیقاً مربوط به همین سفارش باشه، نه سفارش قدیمی
     current_order_id = order.get("order_id", "")
     if button_order_id != current_order_id:
         bot.answer_callback_query(
@@ -800,46 +811,52 @@ def confirm_payment(call):
         )
         return
 
+    # 🆕 قفل کردن فوری سفارش تا از کلیک دوباره / پردازش دوگانه جلوگیری بشه
+    order["status"] = "processing"
+    orders[str(user_id)] = order
+    save_orders(orders)
+
     plan_key = order.get("plan_key")
 
-    # 🆕 انبار از فایل خونده و بعد از مصرف ذخیره میشه
     stock = load_stock()
     plan_stock = stock.get(plan_key, [])
 
     if plan_stock:
         config = plan_stock.pop(0)
         stock[plan_key] = plan_stock
-        save_stock(stock)  # 🆕 دائمی ذخیره میشه
+        save_stock(stock)
         bot.answer_callback_query(call.id, "✅ از انبار ارسال شد")
-        finalize_and_send_config(user_id, config)
+        success = finalize_and_send_config(user_id, config)
 
         plan_name = order.get("plan_name", plan_key)
         remaining_stock = len(plan_stock)
 
-        if remaining_stock == 0:
-            try:
-                bot.send_message(
-                    ADMIN_ID,
-                    f"🚨 *انبار کانفیگ پلن تموم شد!*\n\n"
-                    f"━━━━━━━━━━━━━━━\n"
-                    f"📦 پلن: *{plan_name}*\n"
-                    f"آخرین کانفیگ همین الان برای مشتری ارسال شد.\n"
-                    f"کانفیگ جدید از دوستت بگیر و به `stock.json` اضافه کن.\n"
-                    f"━━━━━━━━━━━━━━━",
-                    parse_mode="Markdown"
-                )
-            except Exception as e:
-                logger.exception(e)
-        else:
-            try:
-                bot.send_message(
-                    ADMIN_ID,
-                    f"📦 یه کانفیگ از انبار پلن *{plan_name}* فروخته شد.\n"
-                    f"باقی‌مانده: *{remaining_stock}*",
-                    parse_mode="Markdown"
-                )
-            except Exception as e:
-                logger.exception(e)
+        # 🆕 هشدار اتمام انبار فقط وقتی معنا داره که ارسال واقعاً موفق شده باشه
+        if success:
+            if remaining_stock == 0:
+                try:
+                    bot.send_message(
+                        ADMIN_ID,
+                        f"🚨 *انبار کانفیگ پلن تموم شد!*\n\n"
+                        f"━━━━━━━━━━━━━━━\n"
+                        f"📦 پلن: *{plan_name}*\n"
+                        f"آخرین کانفیگ همین الان برای مشتری ارسال شد.\n"
+                        f"کانفیگ جدید از دوستت بگیر و به `stock.json` اضافه کن.\n"
+                        f"━━━━━━━━━━━━━━━",
+                        parse_mode="Markdown"
+                    )
+                except Exception as e:
+                    logger.exception(e)
+            else:
+                try:
+                    bot.send_message(
+                        ADMIN_ID,
+                        f"📦 یه کانفیگ از انبار پلن *{plan_name}* فروخته شد.\n"
+                        f"باقی‌مانده: *{remaining_stock}*",
+                        parse_mode="Markdown"
+                    )
+                except Exception as e:
+                    logger.exception(e)
 
         return
 
@@ -854,44 +871,40 @@ def confirm_payment(call):
     register_admin_prompt(msg, "send_config", lambda m: finalize_and_send_config(user_id, m.text.strip()))
 
 def finalize_and_send_config(user_id, config):
+    """
+    سفارش رو نهایی می‌کنه و کانفیگ رو برای کاربر می‌فرسته.
+    اگه ارسال fail بشه، status میشه delivery_failed (نه confirmed) و ادمین
+    یه دکمه‌ی «ارسال مجدد» می‌گیره. کانفیگ استفاده‌شده ذخیره میشه تا موقع
+    retry دوباره پرسیده نشه.
+    برمی‌گردونه: True اگه ارسال موفق بود، False اگه fail شد.
+    """
     orders = load_orders()
-    order = orders.get(str(user_id), {})
+    uid = str(user_id)
+    order = orders.get(uid, {})
 
     days = order.get("days", 30)
-    confirm_date = datetime.now()
-    expiry_date = confirm_date + timedelta(days=days)
+    now = datetime.now()
 
-    order["confirm_date"] = confirm_date.strftime("%Y-%m-%d %H:%M")
+    # 🆕 منطق تمدید: اگه اشتراک قبلی هنوز تموم نشده، از تاریخ انقضای قبلی شروع کن نه از الان
+    start_date = now
+    previous_expiry_str = order.get("previous_expiry")
+    if previous_expiry_str:
+        try:
+            previous_expiry = datetime.strptime(previous_expiry_str, "%Y-%m-%d")
+            if previous_expiry > now:
+                start_date = previous_expiry
+        except ValueError:
+            pass
+
+    expiry_date = start_date + timedelta(days=days)
+
+    order["confirm_date"] = now.strftime("%Y-%m-%d %H:%M")
     order["expiry_date"] = expiry_date.strftime("%Y-%m-%d")
-    order["status"] = "confirmed"
-    order["reminders_sent"] = []
-    orders[str(user_id)] = order
+    order["last_config"] = config  # 🆕 برای retry نگه می‌داریم
+    orders[uid] = order
     save_orders(orders)
 
-    users = load_users()
-    uid = str(user_id)
-    pending_ref = users.get(uid, {}).get("referred_by_pending")
-    if pending_ref:
-        register_referral(user_id, pending_ref)
-        users = load_users()
-        if uid in users:
-            users[uid].pop("referred_by_pending", None)
-            save_users(users)
-
-    if order.get("discount_applied"):
-        clear_user_discount(user_id)
-
-    if order.get("plan_key", "").startswith("gb_"):
-        usage = load_usage()
-        usage[uid] = {
-            "plan_key": order.get("plan_key"),
-            "plan_name": order.get("plan_name"),
-            "total_gb": None,
-            "used_gb": 0,
-            "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M")
-        }
-        save_usage(usage)
-
+    # 🆕 اول تلاش می‌کنیم ارسال کنیم، بعد بر اساس نتیجه وضعیت رو ثبت می‌کنیم
     try:
         bot.send_message(
             user_id,
@@ -916,10 +929,100 @@ def finalize_and_send_config(user_id, config):
     except Exception as e:
         logger.exception(e)
 
+        # 🆕 ارسال fail شد → delivery_failed، نه confirmed
+        orders = load_orders()
+        orders[uid]["status"] = "delivery_failed"
+        save_orders(orders)
+
+        retry_markup = types.InlineKeyboardMarkup()
+        retry_markup.add(types.InlineKeyboardButton("🔁 ارسال مجدد کانفیگ", callback_data=f"retry_{user_id}"))
+        try:
+            bot.send_message(
+                ADMIN_ID,
+                f"❌ *ارسال کانفیگ ناموفق بود!*\n\n"
+                f"━━━━━━━━━━━━━━━\n"
+                f"👤 کاربر: `{user_id}`\n"
+                f"📦 پلن: *{order.get('plan_name', '-')}*\n"
+                f"⚠️ خطا: `{e}`\n"
+                f"احتمالاً کاربر بات رو بلاک کرده.\n"
+                f"کانفیگ ذخیره شده — با دکمه زیر دوباره امتحان کن.\n"
+                f"━━━━━━━━━━━━━━━",
+                parse_mode="Markdown",
+                reply_markup=retry_markup
+            )
+        except Exception as e2:
+            logger.exception(e2)
+        return False
+
+    # 🆕 اینجا فقط وقتی می‌رسیم که ارسال واقعاً موفق بوده
+    orders = load_orders()
+    order = orders.get(uid, {})
+    order["status"] = "confirmed"
+    order["reminders_sent"] = []
+    orders[uid] = order
+    save_orders(orders)
+
+    users = load_users()
+    pending_ref = users.get(uid, {}).get("referred_by_pending")
+    if pending_ref:
+        register_referral(user_id, pending_ref)
+        users = load_users()
+        if uid in users:
+            users[uid].pop("referred_by_pending", None)
+            save_users(users)
+
+    if order.get("discount_applied"):
+        clear_user_discount(user_id)
+
+    if order.get("plan_key", "").startswith("gb_"):
+        usage = load_usage()
+        usage[uid] = {
+            "plan_key": order.get("plan_key"),
+            "plan_name": order.get("plan_name"),
+            "total_gb": None,
+            "used_gb": 0,
+            "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M")
+        }
+        save_usage(usage)
+
     try:
         bot.send_message(ADMIN_ID, f"✅ کانفیگ برای کاربر {user_id} ارسال شد. (انقضا: {order.get('expiry_date')})")
     except Exception as e:
         logger.exception(e)
+
+    return True
+
+# 🆕 ==================== ارسال مجدد کانفیگ (retry) ====================
+@bot.callback_query_handler(func=lambda call: call.data.startswith("retry_"))
+def retry_delivery(call):
+    if call.from_user.id != ADMIN_ID:
+        return
+
+    try:
+        user_id = int(call.data.replace("retry_", ""))
+    except ValueError:
+        bot.answer_callback_query(call.id, "⚠️ آیدی نامعتبره")
+        return
+
+    orders = load_orders()
+    order = orders.get(str(user_id))
+
+    if not order or order.get("status") != "delivery_failed":
+        bot.answer_callback_query(call.id, "⚠️ این سفارش نیازی به ارسال مجدد نداره")
+        return
+
+    config = order.get("last_config")
+    if not config:
+        bot.answer_callback_query(call.id, "❌ کانفیگی برای این سفارش ذخیره نشده، دستی بفرست")
+        return
+
+    bot.answer_callback_query(call.id, "🔁 در حال تلاش مجدد...")
+    success = finalize_and_send_config(user_id, config)
+    if success:
+        try:
+            bot.send_message(ADMIN_ID, f"✅ این‌بار ارسال برای کاربر {user_id} موفق بود.")
+        except Exception as e:
+            logger.exception(e)
 
 # ==================== رد ادمین ====================
 @bot.callback_query_handler(func=lambda call: call.data.startswith("reject_"))
@@ -927,7 +1030,6 @@ def reject_payment(call):
     if call.from_user.id != ADMIN_ID:
         return
 
-    # 🆕 فرمت جدید: reject_{user_id}_{order_id}
     parts = call.data.split("_", 2)
     if len(parts) < 3:
         bot.answer_callback_query(call.id, "⚠️ فرمت دکمه اشتباهه")
@@ -943,7 +1045,6 @@ def reject_payment(call):
         bot.answer_callback_query(call.id, "⚠️ این سفارش قبلاً پردازش شده")
         return
 
-    # 🆕 چک order_id برای رد هم
     current_order_id = order.get("order_id", "")
     if button_order_id != current_order_id:
         bot.answer_callback_query(
@@ -1077,11 +1178,16 @@ def admin_panel(message):
 def show_admin_panel(chat_id, message_id=None):
     orders = load_orders()
     pending_count = sum(1 for o in orders.values() if o.get("status") == "waiting_confirm")
+    failed_count = sum(1 for o in orders.values() if o.get("status") == "delivery_failed")
 
     markup = types.InlineKeyboardMarkup()
     markup.add(types.InlineKeyboardButton(
         f"⏳ سفارشات در انتظار تایید ({pending_count})", callback_data="admin_pending"
     ))
+    if failed_count:
+        markup.add(types.InlineKeyboardButton(
+            f"❌ ارسال‌های ناموفق ({failed_count})", callback_data="admin_failed"
+        ))
     markup.add(types.InlineKeyboardButton("📊 گزارش مالی", callback_data="admin_report"))
     markup.add(types.InlineKeyboardButton("📋 لیست کامل سفارشات", callback_data="admin_orders"))
     markup.add(types.InlineKeyboardButton("📢 ارسال پیام همگانی", callback_data="admin_broadcast"))
@@ -1141,6 +1247,35 @@ def admin_pending(call):
         text += f"🕐 رسید: {o.get('receipt_time', o.get('date','-'))}\n"
         text += "━━━━━━━━━━━━━━━\n"
     bot.send_message(call.message.chat.id, text, parse_mode="Markdown", reply_markup=markup)
+
+# 🆕 لیست سفارش‌هایی که ارسال کانفیگشون fail شده، هرکدوم با دکمه‌ی retry
+@bot.callback_query_handler(func=lambda call: call.data == "admin_failed")
+def admin_failed(call):
+    bot.answer_callback_query(call.id)
+    if call.from_user.id != ADMIN_ID:
+        return
+    orders = load_orders()
+    failed = {uid: o for uid, o in orders.items() if o.get("status") == "delivery_failed"}
+
+    back_markup = types.InlineKeyboardMarkup()
+    back_markup.add(types.InlineKeyboardButton("🔙 برگشت به پنل", callback_data="admin_panel_back"))
+
+    if not failed:
+        bot.send_message(call.message.chat.id, "✅ هیچ ارسال ناموفقی وجود نداره.", reply_markup=back_markup)
+        return
+
+    bot.send_message(call.message.chat.id, "❌ *سفارشات با ارسال ناموفق:*", parse_mode="Markdown")
+    for uid, o in failed.items():
+        markup = types.InlineKeyboardMarkup()
+        markup.add(types.InlineKeyboardButton("🔁 ارسال مجدد", callback_data=f"retry_{uid}"))
+        bot.send_message(
+            call.message.chat.id,
+            f"👤 *{o.get('first_name','-')}* (`{uid}`)\n"
+            f"📦 {o.get('plan_name','-')}\n",
+            parse_mode="Markdown",
+            reply_markup=markup
+        )
+    bot.send_message(call.message.chat.id, "━━━━━━━━━━━━━━━", reply_markup=back_markup)
 
 @bot.callback_query_handler(func=lambda call: call.data == "admin_report")
 def admin_report(call):
@@ -1297,7 +1432,6 @@ def admin_users_stats(call):
     orders = load_orders()
     today = datetime.now().date()
 
-    # 🆕 فقط اشتراک‌هایی که هنوز منقضی نشدن فعال حساب میشن
     active = 0
     for o in orders.values():
         if o.get("status") != "confirmed":
@@ -1355,7 +1489,6 @@ def do_broadcast(message):
             sent += 1
             time.sleep(0.05)
         except Exception as e:
-            # 🆕 اگه خطای 429 (Rate Limit) بود، یه بار صبر کن و retry کن
             err_str = str(e)
             if "429" in err_str or "Too Many Requests" in err_str:
                 time.sleep(2)
@@ -1393,7 +1526,7 @@ def show_orders(message):
         return
     text = "📋 *لیست سفارشات:*\n\n━━━━━━━━━━━━━━━\n"
     for uid, o in orders.items():
-        status_emoji = "✅" if o.get('status') == "confirmed" else "⏳"
+        status_emoji = {"confirmed": "✅", "delivery_failed": "❌"}.get(o.get('status'), "⏳")
         text += f"{status_emoji} *{o.get('first_name','-')}*\n"
         text += f"📦 {o.get('plan_name','-')}\n"
         if o.get('expiry_date'):
