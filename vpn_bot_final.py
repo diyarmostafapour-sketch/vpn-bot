@@ -1608,13 +1608,18 @@ def admin_users_stats(call):
 
     markup = types.InlineKeyboardMarkup()
     markup.add(types.InlineKeyboardButton("🔙 برگشت به پنل", callback_data="admin_panel_back"))
+    users_text = ""
+    for uid, u in users.items():
+        users_text += f"👤 *{u.get('first_name', '-')}* | @{u.get('username', '-')} | `{uid}`\n"
+
     bot.send_message(
         call.message.chat.id,
         f"👥 *آمار کاربران*\n\n"
         f"━━━━━━━━━━━━━━━\n"
         f"👤 کل کاربران ثبت‌شده: *{len(users)}*\n"
         f"✅ اشتراک‌های فعال (منقضی‌نشده): *{active}*\n"
-        f"━━━━━━━━━━━━━━━",
+        f"━━━━━━━━━━━━━━━\n\n"
+        f"{users_text}",
         parse_mode="Markdown",
         reply_markup=markup
     )
