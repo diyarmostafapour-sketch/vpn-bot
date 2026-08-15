@@ -1864,7 +1864,7 @@ def check_pending_orders():
 
     if changed:
         save_orders(orders)
-
+ 
 def run_scheduler():
     schedule.every().day.at("10:00").do(check_expiring_subscriptions)
     schedule.every(30).minutes.do(check_pending_orders)
