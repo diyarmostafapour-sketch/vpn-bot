@@ -1192,6 +1192,7 @@ def show_admin_panel(chat_id, message_id=None):
     markup.add(types.InlineKeyboardButton("📡 تغییر وضعیت سرویس", callback_data="admin_status"))
     markup.add(types.InlineKeyboardButton("🎟️ ثبت کد تخفیف دستی", callback_data="admin_manual_discount"))
     markup.add(types.InlineKeyboardButton("🧪 آمار کانفیگ‌های تست", callback_data="admin_trials"))
+    markup.add(types.InlineKeyboardButton("📦 اضافه کردن کانفیگ به انبار", callback_data="admin_add_stock"))
     markup.add(types.InlineKeyboardButton("👥 آمار کاربران", callback_data="admin_users_stats"))
 
     text = (
@@ -1398,6 +1399,69 @@ def apply_manual_discount(message):
     except Exception as e:
         logger.exception(e)
 
+# ==================== اضافه کردن کانفیگ به انبار ====================
+@bot.callback_query_handler(func=lambda call: call.data == "admin_add_stock")
+def admin_add_stock(call):
+    bot.answer_callback_query(call.id)
+    if call.from_user.id != ADMIN_ID:
+        return
+    
+    markup = types.InlineKeyboardMarkup()
+    for key, plan in PLANS.items():
+        markup.add(types.InlineKeyboardButton(plan["name"], callback_data=f"addstock_{key}"))
+    markup.add(types.InlineKeyboardButton("🔙 برگشت به پنل", callback_data="admin_panel_back"))
+    
+    bot.send_message(
+        call.message.chat.id,
+        "📦 *اضافه کردن کانفیگ به انبار*\n\n"
+        "پلن مورد نظر رو انتخاب کن:",
+        parse_mode="Markdown",
+        reply_markup=markup
+    )
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith("addstock_"))
+def addstock_select_plan(call):
+    bot.answer_callback_query(call.id)
+    if call.from_user.id != ADMIN_ID:
+        return
+    
+    plan_key = call.data.replace("addstock_", "")
+    stock = load_stock()
+    current_count = len(stock.get(plan_key, []))
+    
+    msg = bot.send_message(
+        call.message.chat.id,
+        f"📦 *پلن:* {PLANS[plan_key]['name']}\n"
+        f"📊 موجودی فعلی: *{current_count}*\n\n"
+        f"کانفیگ جدید رو بفرست 👇\n"
+        f"_(هر خط یه کانفیگ — میتونی چند تا یکجا بفرستی)_",
+        parse_mode="Markdown"
+    )
+    register_admin_prompt(msg, f"addstock_{plan_key}", lambda m: addstock_save(m, plan_key))
+
+def addstock_save(message, plan_key):
+    if message.from_user.id != ADMIN_ID:
+        return
+    
+    new_configs = [line.strip() for line in message.text.strip().splitlines() if line.strip()]
+    
+    if not new_configs:
+        bot.send_message(ADMIN_ID, "❌ چیزی وارد نشد.")
+        return
+    
+    stock = load_stock()
+    if plan_key not in stock:
+        stock[plan_key] = []
+    
+    stock[plan_key].extend(new_configs)
+    save_stock(stock)
+    
+    bot.send_message(
+        ADMIN_ID,
+        f"✅ *{len(new_configs)} کانفیگ* به انبار پلن *{PLANS[plan_key]['name']}* اضافه شد.\n"
+        f"📊 موجودی جدید: *{len(stock[plan_key])}*",
+        parse_mode="Markdown"
+    )
 @bot.callback_query_handler(func=lambda call: call.data == "admin_trials")
 def admin_trials(call):
     bot.answer_callback_query(call.id)
