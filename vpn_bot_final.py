@@ -242,6 +242,7 @@ def start(message):
 # ==================== کانفیگ تست رایگان ====================
 @bot.callback_query_handler(func=lambda call: call.data == "get_trial")
 def get_trial(call):
+    bot.answer_callback_query(call.id)
     uid = str(call.from_user.id)
 
     # کل مراحل خوندن، چک کردن و ذخیره باید یکجا و بدون وقفه انجام بشه
@@ -299,9 +300,9 @@ def get_trial(call):
         f"━━━━━━━━━━━━━━━\n"
         f"📱 *راهنمای نصب:*\n\n"
         f"*پیشنهادی برای تجربه بهتر Hiddify ⭐*\n\n"
-        f"🍎 iOS → *Hiddify - V2BOX*\n"
-        f"🤖 Android → *Hiddify-V2ray*\n"
-        f"💻 windows→ *Hiddify-V2ray*\n\n"
+        f"🍎 iOS → *Streisand*\n"
+        f"🤖 Android → *V2RayNG*\n"
+        f"💻 ویندوز → *Hiddify*\n\n"
         f"━━━━━━━━━━━━━━━\n"
         f"اگه راضی بودی، از بخش «🛒 خرید اشتراک» پلن کامل رو تهیه کن 🙏",
         parse_mode="Markdown"
@@ -353,6 +354,7 @@ def get_trial(call):
 # ==================== وضعیت سرویس ====================
 @bot.callback_query_handler(func=lambda call: call.data == "service_status")
 def service_status(call):
+    bot.answer_callback_query(call.id)
     state = SERVICE_STATUS.get("state", "ok")
     emoji = {"ok": "🟢", "warning": "🟡", "down": "🔴"}.get(state, "🟢")
     label = {"ok": "پایدار", "warning": "اختلال جزئی", "down": "قطعی"}.get(state, "پایدار")
@@ -374,6 +376,7 @@ def service_status(call):
 # ==================== اشتراک من ====================
 @bot.callback_query_handler(func=lambda call: call.data == "my_subscription")
 def my_subscription(call):
+    bot.answer_callback_query(call.id)
     orders = load_orders()
     order = orders.get(str(call.from_user.id))
 
@@ -433,6 +436,7 @@ def renew_plan(call):
 # ==================== معرفی به دوستان ====================
 @bot.callback_query_handler(func=lambda call: call.data == "referral_info")
 def referral_info(call):
+    bot.answer_callback_query(call.id)
     ensure_user(call.from_user)
     users = load_users()
     u = users.get(str(call.from_user.id), {})
@@ -485,6 +489,7 @@ def referral_info(call):
 # ==================== خرید ====================
 @bot.callback_query_handler(func=lambda call: call.data == "buy")
 def buy(call):
+    bot.answer_callback_query(call.id)
     markup = types.InlineKeyboardMarkup()
     markup.add(types.InlineKeyboardButton("♾️ اشتراک نامحدود", callback_data="cat_unlimited"))
     markup.add(types.InlineKeyboardButton("📦 اشتراک حجمی", callback_data="cat_limited"))
@@ -506,6 +511,7 @@ def buy(call):
 # ==================== وارد کردن دستی کد تخفیف (نمایش وضعیت) ====================
 @bot.callback_query_handler(func=lambda call: call.data == "enter_discount")
 def enter_discount(call):
+    bot.answer_callback_query(call.id)
     discount = get_user_discount(call.from_user.id)
     if discount > 0:
         text = (
@@ -531,6 +537,7 @@ def enter_discount(call):
 # ==================== نامحدود ====================
 @bot.callback_query_handler(func=lambda call: call.data == "cat_unlimited")
 def show_unlimited(call):
+    bot.answer_callback_query(call.id)
     discount = get_user_discount(call.from_user.id)
     p1 = apply_discount(PLANS["unlimited_1"]["price"], discount)
     p2 = apply_discount(PLANS["unlimited_2"]["price"], discount)
@@ -561,6 +568,7 @@ def show_unlimited(call):
 # ==================== حجمی ====================
 @bot.callback_query_handler(func=lambda call: call.data == "cat_limited")
 def show_limited(call):
+    bot.answer_callback_query(call.id)
     discount = get_user_discount(call.from_user.id)
     markup = types.InlineKeyboardMarkup(row_width=2)
     limited = [(k, v) for k, v in PLANS.items() if k.startswith("gb_")]
@@ -589,6 +597,7 @@ def show_limited(call):
 # ==================== انتخاب پلن ====================
 @bot.callback_query_handler(func=lambda call: call.data.startswith("plan_"))
 def select_plan(call):
+    bot.answer_callback_query(call.id)
     plan_key = call.data.replace("plan_", "")
     plan = PLANS.get(plan_key)
     if not plan:
@@ -598,7 +607,26 @@ def select_plan(call):
     final_price = apply_discount(plan["price"], discount)
 
     orders = load_orders()
-    orders[str(call.from_user.id)] = {
+    uid = str(call.from_user.id)
+    existing = orders.get(uid)
+
+    # اگه کاربر یه سفارش قبلی داره که رسیدش رو فرستاده و منتظر تایید ادمینه،
+    # نذار با انتخاب پلن جدید اون سفارش گم بشه — چون یعنی پولی از قبل واریز شده
+    if existing and existing.get("status") == "waiting_confirm":
+        bot.send_message(
+            call.message.chat.id,
+            "⚠️ *یه سفارش در انتظار تایید داری*\n\n"
+            "━━━━━━━━━━━━━━━\n"
+            "قبلاً رسید فرستادی و در انتظار تایید ادمین هستی.\n"
+            "لطفاً صبر کن تا اون سفارش تایید یا رد بشه،\n"
+            "بعد سفارش جدید ثبت کن.\n\n"
+            "اگه فکر می‌کنی مدت زیادی گذشته، از بخش پشتیبانی پیام بده.\n"
+            "━━━━━━━━━━━━━━━",
+            parse_mode="Markdown"
+        )
+        return
+
+    orders[uid] = {
         "plan_key": plan_key,
         "plan_name": plan["name"],
         "price": final_price,
@@ -645,6 +673,7 @@ def select_plan(call):
 # ==================== رسید ====================
 @bot.callback_query_handler(func=lambda call: call.data == "send_receipt")
 def ask_receipt(call):
+    bot.answer_callback_query(call.id)
     bot.send_message(
         call.message.chat.id,
         "📸 *ارسال رسید*\n\n"
@@ -718,6 +747,13 @@ def confirm_payment(call):
 
     orders = load_orders()
     order = orders.get(str(user_id), {})
+
+    # جلوگیری از تایید دوباره (مثلاً اگه ادمین دوبار دکمه رو بزنه یا تلگرام کلیک رو تکرار کنه)
+    # وگرنه ممکنه یه کانفیگ دوبار از انبار برداشته بشه یا دوبار برای مشتری ارسال بشه
+    if order.get("status") == "confirmed":
+        bot.answer_callback_query(call.id, "⚠️ این سفارش قبلاً تایید شده")
+        return
+
     plan_key = order.get("plan_key")
     stock = CONFIG_STOCK.get(plan_key, [])
 
@@ -825,9 +861,9 @@ def finalize_and_send_config(user_id, config):
         f"━━━━━━━━━━━━━━━\n"
         f"📱 *راهنمای نصب:*\n\n"
         f"*پیشنهادی برای تجربه بهتر Hiddify ⭐*\n\n"
-        f"🍎 iOS → *Hiddify - V2BOX*\n"
-        f"🤖 Android → *Hiddify-V2ray*\n"
-        f"💻 windows→ *Hiddify-V2ray*\n\n"
+        f"🍎 iOS → *Streisand*\n"
+        f"🤖 Android → *V2RayNG*\n"
+        f"💻 ویندوز → *Hiddify*\n\n"
         f"━━━━━━━━━━━━━━━\n"
         f"🙏 ممنون از اعتمادت\n"
         f"مشکل داشتی پیام بده 👉 @lenshikad",
@@ -858,6 +894,7 @@ def reject_payment(call):
 # ==================== پشتیبانی داخل ربات ====================
 @bot.callback_query_handler(func=lambda call: call.data == "support")
 def support(call):
+    bot.answer_callback_query(call.id)
     markup = types.InlineKeyboardMarkup()
     markup.add(types.InlineKeyboardButton("💬 ارسال پیام به پشتیبانی", callback_data="start_support_chat"))
     markup.add(types.InlineKeyboardButton("🔙 برگشت", callback_data="back_start"))
@@ -875,6 +912,7 @@ def support(call):
 
 @bot.callback_query_handler(func=lambda call: call.data == "start_support_chat")
 def start_support_chat(call):
+    bot.answer_callback_query(call.id)
     bot.send_message(
         call.message.chat.id,
         "💬 *پیامت رو بنویس*\n\n"
@@ -947,6 +985,7 @@ def admin_reply_to_support(message):
 
 @bot.callback_query_handler(func=lambda call: call.data == "back_start")
 def back_start(call):
+    bot.answer_callback_query(call.id)
     start(call.message)
 
 # ==================== پنل مدیریت جامع ادمین ====================
@@ -989,12 +1028,14 @@ def show_admin_panel(chat_id, message_id=None):
 
 @bot.callback_query_handler(func=lambda call: call.data == "admin_panel_back")
 def admin_panel_back(call):
+    bot.answer_callback_query(call.id)
     if call.from_user.id != ADMIN_ID:
         return
     show_admin_panel(call.message.chat.id, call.message.message_id)
 
 @bot.callback_query_handler(func=lambda call: call.data == "admin_orders")
 def admin_orders_cb(call):
+    bot.answer_callback_query(call.id)
     if call.from_user.id != ADMIN_ID:
         return
     show_orders(call.message)
@@ -1002,6 +1043,7 @@ def admin_orders_cb(call):
 # ---- سفارشات در انتظار تایید ----
 @bot.callback_query_handler(func=lambda call: call.data == "admin_pending")
 def admin_pending(call):
+    bot.answer_callback_query(call.id)
     if call.from_user.id != ADMIN_ID:
         return
     orders = load_orders()
@@ -1025,6 +1067,7 @@ def admin_pending(call):
 # ---- گزارش مالی ----
 @bot.callback_query_handler(func=lambda call: call.data == "admin_report")
 def admin_report(call):
+    bot.answer_callback_query(call.id)
     if call.from_user.id != ADMIN_ID:
         return
 
@@ -1069,6 +1112,7 @@ def admin_report(call):
 # ---- تغییر وضعیت سرویس ----
 @bot.callback_query_handler(func=lambda call: call.data == "admin_status")
 def admin_status(call):
+    bot.answer_callback_query(call.id)
     if call.from_user.id != ADMIN_ID:
         return
     markup = types.InlineKeyboardMarkup()
@@ -1106,6 +1150,7 @@ def save_status_message(message):
 # ---- کد تخفیف دستی ----
 @bot.callback_query_handler(func=lambda call: call.data == "admin_manual_discount")
 def admin_manual_discount(call):
+    bot.answer_callback_query(call.id)
     if call.from_user.id != ADMIN_ID:
         return
     msg = bot.send_message(
@@ -1148,6 +1193,7 @@ def apply_manual_discount(message):
 # ---- آمار کانفیگ‌های تست ----
 @bot.callback_query_handler(func=lambda call: call.data == "admin_trials")
 def admin_trials(call):
+    bot.answer_callback_query(call.id)
     if call.from_user.id != ADMIN_ID:
         return
     trials = load_trials()
@@ -1171,6 +1217,7 @@ def admin_trials(call):
 # ---- آمار کاربران ----
 @bot.callback_query_handler(func=lambda call: call.data == "admin_users_stats")
 def admin_users_stats(call):
+    bot.answer_callback_query(call.id)
     if call.from_user.id != ADMIN_ID:
         return
     users = load_users()
