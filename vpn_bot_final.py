@@ -6,8 +6,6 @@ import time
 import threading
 import schedule
 import logging
-import zipfile
-import io 
 from datetime import datetime, timedelta
 
 logging.basicConfig(
@@ -1214,7 +1212,6 @@ def show_admin_panel(chat_id, message_id=None):
     markup.add(types.InlineKeyboardButton("💰 تغییر قیمت پلن‌ها", callback_data="admin_change_price"))
     markup.add(types.InlineKeyboardButton("🧪 اضافه کردن کانفیگ تست", callback_data="admin_add_trial"))
     markup.add(types.InlineKeyboardButton("👥 آمار کاربران", callback_data="admin_users_stats"))
-    markup.add(types.InlineKeyboardButton("🗄 بکاپ کامل دیتابیس", callback_data="admin_backup"))
 
     text = (
         "🛠️ *پنل مدیریت Lenshik VPN*\n\n"
@@ -1530,7 +1527,7 @@ def change_price_save(message, plan_key):
         f"✅ قیمت پلن *{PLANS[plan_key]['name']}* به *{new_price:,} تومان* تغییر کرد.",
         parse_mode="Markdown"
     )
-
+    
 # ==================== اضافه کردن کانفیگ به انبار ====================
 @bot.callback_query_handler(func=lambda call: call.data == "admin_add_stock")
 def admin_add_stock(call):
@@ -1760,41 +1757,6 @@ def do_broadcast(message):
     except Exception as e:
         logger.exception(e)
 
-@bot.callback_query_handler(func=lambda call: call.data == "admin_backup")
-def admin_backup(call):
-    bot.answer_callback_query(call.id)
-    if call.from_user.id != ADMIN_ID:
-        return
-
-    files_to_backup = [
-        ORDERS_FILE, USERS_FILE, SUPPORT_FILE,
-        TRIALS_FILE, USAGE_FILE, STOCK_FILE,
-        # PLANS_FILE,  # 🆕 اگه قابلیت «تغییر قیمت پلن‌ها» رو اضافه کردی، این خط رو از کامنت دربیار
-    ]
-
-    buffer = io.BytesIO()
-    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zf:
-        for f in files_to_backup:
-            if os.path.exists(f):
-                zf.write(f, arcname=f)
-
-    buffer.seek(0)
-    backup_name = f"backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.zip"
-    buffer.name = backup_name  # تلگرام از این برای اسم فایل استفاده می‌کنه
-
-    bot.send_document(
-        call.message.chat.id,
-        buffer,
-        caption=(
-            f"🗄 *بکاپ کامل دیتابیس*\n\n"
-            f"━━━━━━━━━━━━━━━\n"
-            f"🕐 تاریخ: {datetime.now().strftime('%Y-%m-%d %H:%M')}\n"
-            f"📦 تعداد فایل: {sum(1 for f in files_to_backup if os.path.exists(f))}\n"
-            f"━━━━━━━━━━━━━━━"
-        ),
-        parse_mode="Markdown"
-    )
-    
 def show_orders(message):
     if message.chat.id != ADMIN_ID:
         return
