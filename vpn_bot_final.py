@@ -44,7 +44,6 @@ PENDING_ORDER_ALERT_HOURS = 2
 
 # ==================== انبار کانفیگ تست رایگان ====================
 TRIAL_CONFIGS = [
-    "https://axonnetwork0market.patoghyou.ir/uBoJwwxhi28wz9KArkDJ/f27e1735-289d-43e3-8739-40f811ecb5ea/#1278-تست-lenshik-vpn",
     "https://axonnetwork0market.patoghyou.ir/uBoJwwxhi28wz9KArkDJ/91a65f32-0905-43c0-8fdb-e7a806b08367/#تست-1228",
     "https://axonnetwork0market.patoghyou.ir/uBoJwwxhi28wz9KArkDJ/af43d5ae-4199-487e-84a1-7a544162c9b0/#تست1243",
     "https://axonnetwork0market.patoghyou.ir/uBoJwwxhi28wz9KArkDJ/879493e1-4520-42a0-84a0-baf7db0097da/#تست-1256",
@@ -59,7 +58,7 @@ INITIAL_CONFIG_STOCK = {
     "gb_30": ["https://axonnetwork0market.patoghyou.ir/uBoJwwxhi28wz9KArkDJ/4b9dbd6b-2077-4aba-8784-5f698090f400/#5784-lenshik-vpn"],
     "gb_35": ["https://axonnetwork0market.patoghyou.ir/uBoJwwxhi28wz9KArkDJ/4e73b8ce-1ab3-40b3-97ad-4955b3fcf2a6/#6841-lenshik-vpn"],
     "gb_40": ["https://axonnetwork0market.patoghyou.ir/uBoJwwxhi28wz9KArkDJ/e9053691-e3de-436f-a3f8-23923e451d99/#3574-lenshik-vpn"],
-    "gb_50": ["https://axonnetwork0market.patoghyou.ir/uBoJwwxhi28wz9KArkDJ/5d628c23-708a-4b0c-98a1-8bf82d4eb687/#0541-lenshik-vpn"],
+    "gb_50": ["https://axonnetwork0market.patoghyou.ir/uBoJwwxhi28wz9KArkDJ/cbe4f1e2-d660-43bd-bc34-8fb3f959b707/#8236-lenshik-vpn"],
     "gb_60": ["https://axonnetwork0market.patoghyou.ir/uBoJwwxhi28wz9KArkDJ/85ace95b-57bd-4dad-869e-06663d77fc04/#3852-lenshik-vpn"],
     "gb_70": ["https://axonnetwork0market.patoghyou.ir/uBoJwwxhi28wz9KArkDJ/f1740d17-7ffd-43d9-98d9-3c980f7bdcac/#8024-lenshik-vpn"],
     "gb_80": ["https://axonnetwork0market.patoghyou.ir/uBoJwwxhi28wz9KArkDJ/7077ac5c-b709-43b4-9583-dc91c1e50cbd/#8695-lenshik-vpn"],
