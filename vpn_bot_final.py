@@ -35,14 +35,6 @@ PLANS = {
     "gb_80":  {"name": "📦 80 گیگ — ۱ ماهه",  "price": 480000, "days": 30},
     "gb_90":  {"name": "📦 90 گیگ — ۱ ماهه",  "price": 540000, "days": 30},
 }
-def apply_saved_plan_prices():
-    if os.path.exists(PLANS_FILE):
-        saved = load_json(PLANS_FILE)
-        for key, price in saved.items():
-            if key in PLANS:
-                PLANS[key]["price"] = price
-
-apply_saved_plan_prices()
 
 # ==================== تنظیمات رفرال / تخفیف ====================
 REFERRALS_NEEDED_FOR_DISCOUNT = 3
@@ -85,7 +77,6 @@ SUPPORT_FILE = "support_sessions.json"
 TRIALS_FILE = "trials.json"
 USAGE_FILE = "usage.json"
 STOCK_FILE = "stock.json"
-PLANS_FILE = "plans.json"
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
@@ -161,11 +152,6 @@ def load_stock():
 
 def save_stock(data):
     save_json(STOCK_FILE, data)
-
-def save_plan_price(plan_key, price):
-    data = load_json(PLANS_FILE) if os.path.exists(PLANS_FILE) else {}
-    data[plan_key] = price
-    save_json(PLANS_FILE, data)
 
 # ==================== کاربران / رفرال ====================
 def ensure_user(user):
@@ -1209,7 +1195,6 @@ def show_admin_panel(chat_id, message_id=None):
     markup.add(types.InlineKeyboardButton("🎟️ ثبت کد تخفیف دستی", callback_data="admin_manual_discount"))
     markup.add(types.InlineKeyboardButton("🧪 آمار کانفیگ‌های تست", callback_data="admin_trials"))
     markup.add(types.InlineKeyboardButton("📦 اضافه کردن کانفیگ به انبار", callback_data="admin_add_stock"))
-    markup.add(types.InlineKeyboardButton("💰 تغییر قیمت پلن‌ها", callback_data="admin_change_price"))
     markup.add(types.InlineKeyboardButton("🧪 اضافه کردن کانفیگ تست", callback_data="admin_add_trial"))
     markup.add(types.InlineKeyboardButton("👥 آمار کاربران", callback_data="admin_users_stats"))
 
@@ -1468,66 +1453,6 @@ def send_message_to_user(message, target_id):
     except Exception as e:
         bot.send_message(ADMIN_ID, f"❌ خطا: `{e}`", parse_mode="Markdown")
 
-@bot.callback_query_handler(func=lambda call: call.data == "admin_change_price")
-def admin_change_price(call):
-    bot.answer_callback_query(call.id)
-    if call.from_user.id != ADMIN_ID:
-        return
-
-    markup = types.InlineKeyboardMarkup()
-    for key, plan in PLANS.items():
-        markup.add(types.InlineKeyboardButton(
-            f"{plan['name']} — {plan['price']:,} تومان", callback_data=f"chprice_{key}"
-        ))
-    markup.add(types.InlineKeyboardButton("🔙 برگشت به پنل", callback_data="admin_panel_back"))
-
-    bot.send_message(
-        call.message.chat.id,
-        "💰 *تغییر قیمت پلن‌ها*\n\nپلنی که می‌خوای قیمتش رو تغییر بدی انتخاب کن:",
-        parse_mode="Markdown",
-        reply_markup=markup
-    )
-
-@bot.callback_query_handler(func=lambda call: call.data.startswith("chprice_"))
-def change_price_select(call):
-    bot.answer_callback_query(call.id)
-    if call.from_user.id != ADMIN_ID:
-        return
-
-    plan_key = call.data.replace("chprice_", "")
-    plan = PLANS.get(plan_key)
-    if not plan:
-        return
-
-    msg = bot.send_message(
-        call.message.chat.id,
-        f"📦 پلن: *{plan['name']}*\n"
-        f"💰 قیمت فعلی: *{plan['price']:,} تومان*\n\n"
-        f"قیمت جدید رو فقط به عدد بفرست (بدون کاما و تومان):",
-        parse_mode="Markdown"
-    )
-    register_admin_prompt(msg, f"chprice_{plan_key}", lambda m: change_price_save(m, plan_key))
-
-def change_price_save(message, plan_key):
-    if message.from_user.id != ADMIN_ID:
-        return
-    try:
-        new_price = int(message.text.strip().replace(",", ""))
-        if new_price <= 0:
-            raise ValueError
-    except ValueError:
-        bot.send_message(ADMIN_ID, "❌ فقط یه عدد صحیح مثبت بفرست.")
-        return
-
-    PLANS[plan_key]["price"] = new_price
-    save_plan_price(plan_key, new_price)
-
-    bot.send_message(
-        ADMIN_ID,
-        f"✅ قیمت پلن *{PLANS[plan_key]['name']}* به *{new_price:,} تومان* تغییر کرد.",
-        parse_mode="Markdown"
-    )
-    
 # ==================== اضافه کردن کانفیگ به انبار ====================
 @bot.callback_query_handler(func=lambda call: call.data == "admin_add_stock")
 def admin_add_stock(call):
@@ -1864,7 +1789,7 @@ def check_pending_orders():
 
     if changed:
         save_orders(orders)
- 
+
 def run_scheduler():
     schedule.every().day.at("10:00").do(check_expiring_subscriptions)
     schedule.every(30).minutes.do(check_pending_orders)
