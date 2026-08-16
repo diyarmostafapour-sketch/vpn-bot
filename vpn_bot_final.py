@@ -1183,35 +1183,25 @@ def show_admin_panel(chat_id, message_id=None):
 
     markup = types.InlineKeyboardMarkup()
     markup.add(types.InlineKeyboardButton(
-        f"⏳ در انتظار تایید ({pending_count})", callback_data="admin_pending"
+        f"⏳ سفارشات در انتظار تایید ({pending_count})", callback_data="admin_pending"
     ))
     if failed_count:
         markup.add(types.InlineKeyboardButton(
-            f"❌ ارسال ناموفق ({failed_count})", callback_data="admin_failed"
+            f"❌ ارسال‌های ناموفق ({failed_count})", callback_data="admin_failed"
         ))
-    markup.add(
-        types.InlineKeyboardButton("📋 لیست سفارشات", callback_data="admin_orders"),
-        types.InlineKeyboardButton("📊 گزارش مالی", callback_data="admin_report")
-    )
-    markup.add(
-        types.InlineKeyboardButton("👥 آمار کاربران", callback_data="admin_users_stats"),
-        types.InlineKeyboardButton("📨 پیام به کاربر", callback_data="admin_send_user")
-    )
-    markup.add(
-        types.InlineKeyboardButton("📢 پیام همگانی", callback_data="admin_broadcast"),
-        types.InlineKeyboardButton("📡 وضعیت سرویس", callback_data="admin_status")
-    )
-    markup.add(
-        types.InlineKeyboardButton("🎟️ تخفیف دستی", callback_data="admin_manual_discount"),
-        types.InlineKeyboardButton("🔎 جستجوی کاربر", callback_data="admin_search_user")
-    )
-    markup.add(
-        types.InlineKeyboardButton("📦 انبار کانفیگ", callback_data="admin_stock_menu"),
-        types.InlineKeyboardButton("🧪 کانفیگ تست", callback_data="admin_trial_menu")
-    )
-    markup.add(
-        types.InlineKeyboardButton("💾 بکاپ", callback_data="admin_backup_menu")
-    )
+    markup.add(types.InlineKeyboardButton("📊 گزارش مالی", callback_data="admin_report"))
+    markup.add(types.InlineKeyboardButton("📋 لیست کامل سفارشات", callback_data="admin_orders"))
+    markup.add(types.InlineKeyboardButton("📢 ارسال پیام همگانی", callback_data="admin_broadcast"))
+    markup.add(types.InlineKeyboardButton("📨 ارسال پیام به کاربر خاص", callback_data="admin_send_user"))
+    markup.add(types.InlineKeyboardButton("📡 تغییر وضعیت سرویس", callback_data="admin_status"))
+    markup.add(types.InlineKeyboardButton("🎟️ ثبت کد تخفیف دستی", callback_data="admin_manual_discount"))
+    markup.add(types.InlineKeyboardButton("🧪 آمار کانفیگ‌های تست", callback_data="admin_trials"))
+    markup.add(types.InlineKeyboardButton("📦 اضافه کردن کانفیگ به انبار", callback_data="admin_add_stock"))
+    markup.add(types.InlineKeyboardButton("🧪 اضافه کردن کانفیگ تست", callback_data="admin_add_trial"))
+    markup.add(types.InlineKeyboardButton("👥 آمار کاربران", callback_data="admin_users_stats"))
+    markup.add(types.InlineKeyboardButton("💾 خروجی بکاپ", callback_data="admin_backup"))
+    markup.add(types.InlineKeyboardButton("📥 ورودی بکاپ", callback_data="admin_restore"))
+    
 
     text = (
         "🛠️ *پنل مدیریت Lenshik VPN*\n\n"
@@ -1227,7 +1217,7 @@ def show_admin_panel(chat_id, message_id=None):
         except Exception as e:
             logger.exception(e)
     bot.send_message(chat_id, text, parse_mode="Markdown", reply_markup=markup)
-    
+
 @bot.callback_query_handler(func=lambda call: call.data == "admin_panel_back")
 def admin_panel_back(call):
     bot.answer_callback_query(call.id)
