@@ -6,6 +6,7 @@ import time
 import threading
 import schedule
 import logging
+import io
 from datetime import datetime, timedelta
 
 logging.basicConfig(
@@ -1196,7 +1197,10 @@ def show_admin_panel(chat_id, message_id=None):
     markup.add(types.InlineKeyboardButton("🧪 آمار کانفیگ‌های تست", callback_data="admin_trials"))
     markup.add(types.InlineKeyboardButton("📦 اضافه کردن کانفیگ به انبار", callback_data="admin_add_stock"))
     markup.add(types.InlineKeyboardButton("🧪 اضافه کردن کانفیگ تست", callback_data="admin_add_trial"))
+    markup.add(types.InlineKeyboardButton("💾 خروجی بکاپ", callback_data="admin_backup"))
+    markup.add(types.InlineKeyboardButton("📥 ورودی بکاپ", callback_data="admin_restore"))
     markup.add(types.InlineKeyboardButton("👥 آمار کاربران", callback_data="admin_users_stats"))
+    
 
     text = (
         "🛠️ *پنل مدیریت Lenshik VPN*\n\n"
@@ -1681,6 +1685,80 @@ def do_broadcast(message):
         )
     except Exception as e:
         logger.exception(e)
+
+# ==================== بکاپ ====================
+@bot.callback_query_handler(func=lambda call: call.data == "admin_backup")
+def admin_backup(call):
+    bot.answer_callback_query(call.id)
+    if call.from_user.id != ADMIN_ID:
+        return
+    try:
+        orders  = load_orders()
+        users   = load_users()
+        stock   = load_stock()
+        trials  = load_trials()
+        backup  = {
+            "date": datetime.now().strftime("%Y-%m-%d %H:%M"),
+            "users": users,
+            "orders": orders,
+            "stock": stock,
+            "trials": trials,
+        }
+        data = json.dumps(backup, ensure_ascii=False, indent=2).encode("utf-8")
+        filename = f"backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        buf = io.BytesIO(data)
+        buf.name = filename
+        bot.send_document(ADMIN_ID, buf,
+            caption=f"💾 *بکاپ کامل*\n📅 {backup['date']}\n\n"
+                    f"👥 کاربران: *{len(users)}*\n"
+                    f"📦 سفارشات: *{len(orders)}*\n\n"
+                    f"برای restore این فایل رو از پنل بفرست.",
+            parse_mode="Markdown")
+    except Exception as e:
+        logger.exception(e)
+        bot.send_message(ADMIN_ID, f"❌ خطا در ساخت بکاپ: {e}")
+
+@bot.callback_query_handler(func=lambda call: call.data == "admin_restore")
+def admin_restore(call):
+    bot.answer_callback_query(call.id)
+    if call.from_user.id != ADMIN_ID:
+        return
+    msg = bot.send_message(ADMIN_ID,
+        "📥 *ورودی بکاپ*\n\n"
+        "فایل JSON بکاپ رو اینجا بفرست.\n"
+        "⚠️ اطلاعات فعلی با بکاپ جایگزین میشه.",
+        parse_mode="Markdown")
+    bot.register_next_step_handler(msg, receive_restore_file)
+
+def receive_restore_file(message):
+    if message.from_user.id != ADMIN_ID:
+        return
+    if not message.document:
+        bot.send_message(ADMIN_ID, "❌ لطفاً فایل JSON رو بفرست.")
+        return
+    try:
+        file_info = bot.get_file(message.document.file_id)
+        downloaded = bot.download_file(file_info.file_path)
+        backup = json.loads(downloaded.decode("utf-8"))
+
+        if "users" in backup:
+            save_users(backup["users"])
+        if "orders" in backup:
+            save_orders(backup["orders"])
+        if "stock" in backup:
+            save_stock(backup["stock"])
+        if "trials" in backup:
+            save_trials(backup["trials"])
+
+        bot.send_message(ADMIN_ID,
+            f"✅ *بکاپ بازگردانی شد!*\n\n"
+            f"📅 تاریخ بکاپ: {backup.get('date', '-')}\n"
+            f"👥 کاربران: *{len(backup.get('users', {}))}*\n"
+            f"📦 سفارشات: *{len(backup.get('orders', {}))}*",
+            parse_mode="Markdown")
+    except Exception as e:
+        logger.exception(e)
+        bot.send_message(ADMIN_ID, f"❌ خطا در بازگردانی: {e}")
 
 def show_orders(message):
     if message.chat.id != ADMIN_ID:
