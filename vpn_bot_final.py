@@ -54,16 +54,16 @@ TRIAL_HOURS = 24
 
 # ==================== انبار کانفیگ آماده (ذخیره دائمی در فایل) ====================
 INITIAL_CONFIG_STOCK = {
-    "unlimited_1": ["https://axonnetwork0market.patoghyou.ir/uBoJwwxhi28wz9KArkDJ/b8159021-44a4-40ca-9580-3f4c059ab981/#4151-lenshik-vpn"],
-    "unlimited_2": ["https://axonnetwork0market.patoghyou.ir/uBoJwwxhi28wz9KArkDJ/377338db-4aad-4384-8599-0c28bc947a96/#8695-lenshik-vpn"],
-    "gb_30": ["https://axonnetwork0market.patoghyou.ir/uBoJwwxhi28wz9KArkDJ/4b9dbd6b-2077-4aba-8784-5f698090f400/#5784-lenshik-vpn"],
-    "gb_35": ["https://axonnetwork0market.patoghyou.ir/uBoJwwxhi28wz9KArkDJ/4e73b8ce-1ab3-40b3-97ad-4955b3fcf2a6/#6841-lenshik-vpn"],
-    "gb_40": ["https://axonnetwork0market.patoghyou.ir/uBoJwwxhi28wz9KArkDJ/e9053691-e3de-436f-a3f8-23923e451d99/#3574-lenshik-vpn"],
-    "gb_50": ["https://axonnetwork0market.patoghyou.ir/uBoJwwxhi28wz9KArkDJ/cbe4f1e2-d660-43bd-bc34-8fb3f959b707/#8236-lenshik-vpn"],
-    "gb_60": ["https://axonnetwork0market.patoghyou.ir/uBoJwwxhi28wz9KArkDJ/85ace95b-57bd-4dad-869e-06663d77fc04/#3852-lenshik-vpn"],
-    "gb_70": ["https://axonnetwork0market.patoghyou.ir/uBoJwwxhi28wz9KArkDJ/f1740d17-7ffd-43d9-98d9-3c980f7bdcac/#8024-lenshik-vpn"],
-    "gb_80": ["https://axonnetwork0market.patoghyou.ir/uBoJwwxhi28wz9KArkDJ/7077ac5c-b709-43b4-9583-dc91c1e50cbd/#8695-lenshik-vpn"],
-    "gb_90": ["https://axonnetwork0market.patoghyou.ir/uBoJwwxhi28wz9KArkDJ/29959d0f-d198-4f52-946f-233e7c1887f2/#8084-lenshik-vpn"],
+    "unlimited_1": ["https://axonnetwork0market.patoghyou.ir/uBoJwwxhi28wz9KArkDJ/b8159021-44a4-40ca-9580-3f4c059ab981/auto/?asn=unknown#4151%7C%20lenshik%20vpn"],
+    "unlimited_2": ["https://axonnetwork0market.patoghyou.ir/uBoJwwxhi28wz9KArkDJ/377338db-4aad-4384-8599-0c28bc947a96/auto/?asn=unknown#8695%20%7C%20lenshik%20vpn"],
+    "gb_30": ["https://axonnetwork0market.patoghyou.ir/uBoJwwxhi28wz9KArkDJ/4b9dbd6b-2077-4aba-8784-5f698090f400/auto/?asn=unknown#5784%20%7C%20lenshik%20vpn"],
+    "gb_35": ["https://axonnetwork0market.patoghyou.ir/uBoJwwxhi28wz9KArkDJ/4e73b8ce-1ab3-40b3-97ad-4955b3fcf2a6/auto/?asn=unknown#6841%20%7C%20lenshik%20vpn"],
+    "gb_40": ["https://axonnetwork0market.patoghyou.ir/uBoJwwxhi28wz9KArkDJ/e9053691-e3de-436f-a3f8-23923e451d99/auto/?asn=unknown#3574%20%7C%20lenshik%20vpn"],
+    "gb_50": ["https://axonnetwork0market.patoghyou.ir/uBoJwwxhi28wz9KArkDJ/cbe4f1e2-d660-43bd-bc34-8fb3f959b707/auto/?asn=unknown#8236%20%7C%20lenshik%20vpn"],
+    "gb_60": ["https://axonnetwork0market.patoghyou.ir/uBoJwwxhi28wz9KArkDJ/85ace95b-57bd-4dad-869e-06663d77fc04/auto/?asn=unknown#3852%20%7C%20lenshik%20vpn"],
+    "gb_70": ["https://axonnetwork0market.patoghyou.ir/uBoJwwxhi28wz9KArkDJ/f1740d17-7ffd-43d9-98d9-3c980f7bdcac/auto/?asn=unknown#8024%20%7C%20lenshik%20vpn"],
+    "gb_80": ["https://axonnetwork0market.patoghyou.ir/uBoJwwxhi28wz9KArkDJ/7077ac5c-b709-43b4-9583-dc91c1e50cbd/auto/?asn=unknown#8695%20%7C%20lenshik%20vpn"],
+    "gb_90": ["https://axonnetwork0market.patoghyou.ir/uBoJwwxhi28wz9KArkDJ/29959d0f-d198-4f52-946f-233e7c1887f2/auto/?asn=unknown#8084%20%7C%20lenshik%20vpn"],
 }
 
 # ==================== وضعیت سرویس ====================
