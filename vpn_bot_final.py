@@ -1189,18 +1189,35 @@ def show_admin_panel(chat_id, message_id=None):
         markup.add(types.InlineKeyboardButton(
             f"❌ ارسال‌های ناموفق ({failed_count})", callback_data="admin_failed"
         ))
-    markup.add(types.InlineKeyboardButton("📊 گزارش مالی", callback_data="admin_report"))
-    markup.add(types.InlineKeyboardButton("📋 لیست کامل سفارشات", callback_data="admin_orders"))
-    markup.add(types.InlineKeyboardButton("📢 ارسال پیام همگانی", callback_data="admin_broadcast"))
-    markup.add(types.InlineKeyboardButton("📨 ارسال پیام به کاربر خاص", callback_data="admin_send_user"))
-    markup.add(types.InlineKeyboardButton("📡 تغییر وضعیت سرویس", callback_data="admin_status"))
-    markup.add(types.InlineKeyboardButton("🎟️ ثبت کد تخفیف دستی", callback_data="admin_manual_discount"))
-    markup.add(types.InlineKeyboardButton("🧪 آمار کانفیگ‌های تست", callback_data="admin_trials"))
-    markup.add(types.InlineKeyboardButton("📦 اضافه کردن کانفیگ به انبار", callback_data="admin_add_stock"))
-    markup.add(types.InlineKeyboardButton("🧪 اضافه کردن کانفیگ تست", callback_data="admin_add_trial"))
-    markup.add(types.InlineKeyboardButton("💾 خروجی بکاپ", callback_data="admin_backup"))
-    markup.add(types.InlineKeyboardButton("📥 ورودی بکاپ", callback_data="admin_restore"))
-    markup.add(types.InlineKeyboardButton("👥 آمار کاربران", callback_data="admin_users_stats"))
+    # ردیف اول — سفارشات
+markup.add(
+    types.InlineKeyboardButton("⏳ در انتظار تایید", callback_data="admin_pending"),
+    types.InlineKeyboardButton("📋 لیست سفارشات", callback_data="admin_orders")
+)
+# ردیف دوم — مالی
+markup.add(
+    types.InlineKeyboardButton("📊 گزارش مالی", callback_data="admin_report"),
+    types.InlineKeyboardButton("🎟️ تخفیف دستی", callback_data="admin_manual_discount")
+)
+# ردیف سوم — کاربران
+markup.add(
+    types.InlineKeyboardButton("👥 آمار کاربران", callback_data="admin_users_stats"),
+    types.InlineKeyboardButton("📨 پیام به کاربر", callback_data="admin_send_user")
+)
+# ردیف چهارم — پیام‌رسانی
+markup.add(
+    types.InlineKeyboardButton("📢 پیام همگانی", callback_data="admin_broadcast"),
+    types.InlineKeyboardButton("📡 وضعیت سرویس", callback_data="admin_status")
+)
+# ردیف پنجم — انبار
+markup.add(
+    types.InlineKeyboardButton("📦 انبار کانفیگ", callback_data="admin_stock_menu"),
+    types.InlineKeyboardButton("🧪 کانفیگ تست", callback_data="admin_trial_menu")
+)
+# ردیف ششم — بکاپ
+markup.add(
+    types.InlineKeyboardButton("💾 بکاپ", callback_data="admin_backup_menu")
+)
     
 
     text = (
