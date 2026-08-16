@@ -78,7 +78,6 @@ SUPPORT_FILE = "support_sessions.json"
 TRIALS_FILE = "trials.json"
 USAGE_FILE = "usage.json"
 STOCK_FILE = "stock.json"
-ACTIVITY_FILE = "activity.json"
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
@@ -154,51 +153,6 @@ def load_stock():
 
 def save_stock(data):
     save_json(STOCK_FILE, data)
-
-def load_activity():
-    return load_json(ACTIVITY_FILE)
-
-def save_activity(data):
-    save_json(ACTIVITY_FILE, data)
-
-# اسم فارسی هر بخش برای نمایش قشنگ‌تر توی آمار
-SECTION_LABELS = {
-    "buy": "خرید",
-    "my_subscription": "اشتراک من",
-    "get_trial": "تست رایگان",
-    "referral_info": "معرفی به دوستان",
-    "service_status": "وضعیت سرویس",
-    "support": "پشتیبانی",
-}
-
-def log_activity(user, section_key):
-    """هر بار کاربر وارد یه بخش میشه، این تابع صداش کن تا ثبت بشه"""
-    label = SECTION_LABELS.get(section_key, section_key)
-    activity = load_activity()
-    uid = str(user.id)
-
-    if uid not in activity:
-        activity[uid] = {
-            "first_name": user.first_name or "-",
-            "username": user.username or "-",
-            "visit_count": 0,
-            "last_seen": "",
-            "recent": []
-        }
-
-    activity[uid]["first_name"] = user.first_name or "-"
-    activity[uid]["username"] = user.username or "-"
-    activity[uid]["visit_count"] += 1
-    now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
-    activity[uid]["last_seen"] = now_str
-
-    activity[uid]["recent"].insert(0, {"section": label, "time": now_str})
-    activity[uid]["recent"] = activity[uid]["recent"][:10]  # فقط ۱۰ تای آخر نگه دار
-
-    save_activity(activity)
-
-def relative_time(time_str):
-    """تاریخ ذخیره‌شده رو به «۵ دقیقه
 
 # ==================== کاربران / رفرال ====================
 def ensure_user(user):
