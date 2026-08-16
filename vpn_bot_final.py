@@ -959,6 +959,7 @@ def finalize_and_send_config(user_id, config):
     order = orders.get(uid, {})
     order["status"] = "confirmed"
     order["reminders_sent"] = []
+    order["last_config"] = config
     orders[uid] = order
     save_orders(orders)
 
